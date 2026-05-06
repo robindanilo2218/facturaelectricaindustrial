@@ -1,0 +1,1708 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Historial de Factura Eléctrica y Producción</title>
+    <!-- Importar Chart.js para los gráficos de producción -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-color: #f4f7f6;
+            --panel-bg: #ffffff;
+            --text-color: #333;
+            --text-muted: #6b7280;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --card-bg: #fff;
+            --border: #e5e7eb;
+            --good: #16a34a; 
+            --bad: #dc2626; 
+            --neutral: #6b7280;
+            --warning: #d97706;
+            --success: #059669;
+            --danger: #dc2626;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        h1 { font-size: 1.5rem; color: #111; }
+        h2, h3 { color: #111827; }
+
+        .controls { display: flex; gap: 10px; flex-wrap: wrap; }
+
+        button, .file-upload-label {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        button:hover, .file-upload-label:hover { background-color: var(--primary-hover); }
+        button:disabled { background-color: #9ca3af; cursor: not-allowed; }
+        button.danger { background-color: #dc2626; }
+        button.danger:hover { background-color: #b91c1c; }
+        button.secondary { background-color: #4b5563; }
+        button.secondary:hover { background-color: #374151; }
+        
+        .btn-add { background-color: var(--success); color: white; }
+        .btn-add:hover { background-color: #047857; }
+        .btn-delete { background-color: var(--danger); color: white; padding: 6px 12px; font-size: 0.85rem;}
+        .btn-delete:hover { background-color: #b91c1c; }
+        
+        input[type="file"] { display: none; }
+
+        /* --- SISTEMA DE PESTAÑAS (TABS) --- */
+        .tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--border);
+        }
+        .tab-btn {
+            background: transparent;
+            color: var(--text-muted);
+            border: none;
+            font-size: 1.05rem;
+            font-weight: 600;
+            cursor: pointer;
+            padding: 10px 20px;
+            border-bottom: 3px solid transparent;
+            border-radius: 6px 6px 0 0;
+            transition: all 0.2s;
+        }
+        .tab-btn:hover { background: #e5e7eb; color: #111; }
+        .tab-btn.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+            background: #eff6ff;
+        }
+        .tab-content { display: none; animation: fadeIn 0.3s ease; }
+        .tab-content.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* --- ESTILOS COMPARTIDOS Y FACTURA --- */
+        .panel {
+            background: var(--panel-bg);
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            margin-bottom: 24px;
+            border: 1px solid var(--border);
+        }
+
+        .filter-bar {
+            background: var(--card-bg);
+            padding: 12px 20px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .nav-group { display: flex; align-items: center; gap: 8px; }
+        select { padding: 6px 12px; border-radius: 4px; border: 1px solid var(--border); font-size: 0.95rem; outline: none; }
+        .view-modes { display: flex; align-items: center; gap: 12px; font-size: 0.9rem; background: #f9fafb; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border); flex-wrap: wrap; }
+        .view-modes label { cursor: pointer; display: flex; align-items: center; gap: 4px; }
+
+        .matrix-card { background: var(--card-bg); padding: 16px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 24px; overflow-x: auto; }
+        .matrix-card h3 { font-size: 0.9rem; margin-bottom: 12px; color: #4b5563; }
+        .matrix-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        .matrix-table th, .matrix-table td { border: 1px solid var(--border); text-align: center; padding: 6px; }
+        .matrix-table th { background: #f9fafb; }
+        .matrix-table th label { display: flex; flex-direction: column; align-items: center; cursor: pointer; gap: 2px;}
+        .matrix-table td label { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; cursor: pointer;}
+        .matrix-table input[type="checkbox"] { cursor: pointer; }
+
+        /* Cuadros Resaltados */
+        .highlight-boxes-container { display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+        .highlight-box { background: #fefce8; border: 2px dashed #f59e0b; border-radius: 8px; padding: 16px; flex: 1; min-width: 280px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .highlight-box.blue { background: #eff6ff; border-color: #3b82f6; }
+        .highlight-box.green { background: #f0fdf4; border-color: #10b981; }
+        .highlight-box h4 { margin-bottom: 12px; font-size: 0.95rem; color: #111; text-transform: uppercase; border-bottom: 1px solid rgba(0,0,0,0.1); padding-bottom: 6px; }
+        
+        .highlight-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; font-size: 0.95rem; color: #374151; }
+        .highlight-row > span:first-child { flex: 1; padding-right: 10px; }
+        .highlight-row > span:last-child:not(.data-group) { font-weight: bold; color: #111; }
+        
+        .data-group { text-align: right; }
+        .data-group span.primary-val { font-weight: bold; color: var(--primary); display: block; font-size: 1.15rem; line-height: 1.2;}
+        .data-group span.secondary-val { font-size: 0.8rem; font-weight: normal; color: #6b7280; display: block; line-height: 1.2; margin-top: 2px;}
+
+        .summary-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .card { background: var(--card-bg); padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid var(--border); display: flex; flex-direction: column; justify-content: center; }
+        .card h3 { font-size: 0.8rem; color: #6b7280; text-transform: uppercase; margin-bottom: 8px; }
+        .card .value { font-size: 1.4rem; font-weight: bold; color: #111; display: flex; align-items: baseline; gap: 8px; }
+
+        .diff { font-size: 0.85rem; font-weight: 600; padding: 2px 6px; border-radius: 4px; background: #f3f4f6; }
+        .diff.good { color: var(--good); background: #dcfce7; }
+        .diff.bad { color: var(--bad); background: #fee2e2; }
+        .diff.neutral { color: var(--neutral); }
+
+        .bar-container { width: 100%; background-color: #e5e7eb; border-radius: 4px; height: 6px; margin-top: 4px; overflow: hidden; }
+        .bar { height: 100%; background-color: var(--primary); border-radius: 4px; transition: width 0.3s ease; }
+        .bar.kw { background-color: #10b981; }
+        .bar.kwh { background-color: #f59e0b; }
+
+        /* Estructura de Tablas Desplazables */
+        .tables-wrapper { display: flex; align-items: flex-start; background: var(--card-bg); border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid var(--border); overflow: hidden; margin-bottom: 30px; }
+        .base-table-container { flex: 0 0 auto; border-right: 2px solid #9ca3af; z-index: 10; box-shadow: 4px 0 8px rgba(0,0,0,0.05); background: #fff; }
+        .comp-table-container { flex: 1 1 auto; overflow-x: auto; }
+        .tables-wrapper table { width: 100%; border-collapse: collapse; text-align: left; }
+        .tables-wrapper th { background-color: #f9fafb; font-weight: 600; font-size: 0.85rem; color: #4b5563; vertical-align: middle; border-bottom: 2px solid var(--border); padding: 10px 16px; }
+        .tables-wrapper td { padding: 10px 16px; border-bottom: 1px solid var(--border); height: 64px; white-space: nowrap; vertical-align: middle; }
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .border-bottom-thin { border-bottom: 1px solid var(--border) !important; }
+        .compare-col { border-left: 1px solid var(--border); background-color: #fafafa; }
+        .comp-header-group { border-left: 1px solid #d1d5db; text-align: center; background: #f3f4f6; }
+
+        /* Tooltips */
+        .has-tooltip { position: relative; cursor: help; border-bottom: 1px dotted #9ca3af; color: #1f2937; }
+        .has-tooltip:hover::after {
+            content: attr(data-tooltip); position: absolute; bottom: 100%; left: 0; transform: translateY(-4px);
+            background: #1f2937; color: #fff; padding: 8px 12px; border-radius: 6px; font-size: 0.75rem;
+            white-space: normal; min-width: 250px; max-width: 350px; z-index: 100; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            font-weight: normal; line-height: 1.4;
+        }
+
+        .toast { position: fixed; bottom: 20px; right: 20px; background: #333; color: #fff; padding: 12px 24px; border-radius: 6px; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 1000; }
+        .toast.show { opacity: 1; }
+
+        /* --- ESTILOS CALCULADORA DE PRODUCCIÓN --- */
+        .panel-header { margin-bottom: 16px; padding-bottom: 10px; border-bottom: 2px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .factura-inputs { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; background-color: #eff6ff; padding: 15px; border-radius: 8px; border: 1px solid #bfdbfe; }
+        .input-group { display: flex; flex-direction: column; gap: 5px; }
+        .input-group label { font-weight: 600; font-size: 0.9rem; color: #1e3a8a; }
+        .table-prod input[type="number"], .table-prod input[type="text"], .input-group input[type="number"], .input-group input[type="text"] { 
+            padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.9rem; width: 100%; min-width: 60px; background-color: #ffffff; color: #111827; box-shadow: inset 0 1px 2px rgba(0,0,0,0.05); 
+        }
+        input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2); }
+        .input-readonly { background-color: #e5e7eb !important; color: #4b5563 !important; cursor: not-allowed; border: 1px solid #d1d5db; font-weight: bold; }
+        
+        .table-responsive { overflow-x: auto; }
+        .table-prod { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .table-prod th { background-color: #f8fafc; color: var(--text-muted); text-align: center; padding: 12px; font-size: 0.8rem; text-transform: uppercase; border-bottom: 2px solid var(--border); line-height:1.2;}
+        .table-prod th small { font-size: 0.7rem; color: #9ca3af; text-transform: none; display: block; margin-top: 2px; }
+        .table-prod td { padding: 8px 10px; border-bottom: 1px solid var(--border); text-align: center;}
+        .table-prod td:first-child { text-align: left; }
+
+        .kpi-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 20px; }
+        .kpi-card { background: #f8fafc; padding: 16px; border-radius: 8px; border: 1px solid var(--border); text-align: center; }
+        .kpi-title { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px; font-weight: 600;}
+        .kpi-value { font-size: 1.8rem; font-weight: bold; color: var(--text-main); }
+        .kpi-card.alert { background-color: #fef2f2; border-color: #fca5a5; }
+        .kpi-card.alert .kpi-value { color: var(--danger); }
+
+        .charts-container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media (max-width: 900px) { .charts-container { grid-template-columns: 1fr; } }
+        .chart-box { height: 300px; width: 100%; }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Gestión Integral de Energía</h1>
+        <div class="controls">
+            <label class="file-upload-label secondary">
+                Importar JSON
+                <input type="file" id="jsonInput" accept=".json">
+            </label>
+            <button class="secondary" onclick="exportJSON()">Exportar JSON</button>
+            <label class="file-upload-label">
+                + Nuevo CSV
+                <input type="file" id="csvInput" accept=".csv">
+            </label>
+            <button class="danger" onclick="clearDatabase()">Limpiar BD</button>
+        </div>
+    </header>
+
+    <!-- NAVEGACIÓN DE PESTAÑAS -->
+    <nav class="tabs">
+        <button class="tab-btn active" id="btn-tab-dashboard" onclick="switchTab('dashboard')">Historial y Análisis de Factura</button>
+        <button class="tab-btn" id="btn-tab-calc" onclick="switchTab('calc')">Eficiencia y Costo de Producción</button>
+    </nav>
+
+    <!-- ==========================================
+         PESTAÑA 1: HISTORIAL Y ANÁLISIS DE FACTURA
+         ========================================== -->
+    <div id="tab-dashboard" class="tab-content active">
+        <div class="filter-bar">
+            <div class="nav-group">
+                <span style="font-size: 0.9rem; font-weight: 600;">Periodo Base:</span>
+                <button id="btnPrev" onclick="navigate(-1)" title="Mes Anterior">&larr;</button>
+                <select id="periodSelect" onchange="onFilterChange()">
+                    <option value="ALL">Todo el Historial Acumulado</option>
+                </select>
+                <button id="btnNext" onclick="navigate(1)" title="Mes Siguiente">&rarr;</button>
+            </div>
+            
+            <div class="view-modes">
+                <strong>Moneda:</strong>
+                <select id="displayCurrency" onchange="updateDashboardView()">
+                    <option value="USD">Dólares ($)</option>
+                    <option value="GTQ">Quetzales (Q)</option>
+                </select>
+                
+                <span class="has-tooltip" data-tooltip="Tipo de Cambio. Se extrae automáticamente de la factura, pero puedes modificarlo para ver conversiones personalizadas." style="margin-left:8px; font-weight:600;">TC:</span>
+                <input type="number" id="manualTC" value="7.80" step="0.01" style="width: 85px; padding: 4px; border:1px solid var(--border); border-radius:4px;" oninput="updateDashboardView()">
+
+                <strong style="margin-left: 12px;">Mostrar:</strong>
+                <label><input type="radio" name="viewMode" value="ALL" checked onchange="updateDashboardView()"> Ambos</label>
+                <label><input type="radio" name="viewMode" value="KW" onchange="updateDashboardView()"> Solo KWH/KW</label>
+                <label><input type="radio" name="viewMode" value="COST" onchange="updateDashboardView()"> Solo Costos</label>
+            </div>
+        </div>
+
+        <div class="matrix-card">
+            <h3>Comparar con (Selecciona Periodos):</h3>
+            <p style="font-size:0.85rem; color:#6b7280; margin-bottom:12px;">Activa las casillas para comparar el Periodo Base con meses anteriores. Si no seleccionas ninguno, la tabla derecha mostrará los <strong>porcentajes y desglose</strong> del Periodo Base.</p>
+            <div id="matrixContainer"></div>
+        </div>
+
+        <!-- CUADROS RESALTADOS -->
+        <div class="highlight-boxes-container">
+            <div class="highlight-box blue">
+                <h4 class="has-tooltip" data-tooltip="Totales exactos extraídos directamente del resumen de la factura.">Resumen de Consumo Facturado</h4>
+                <div class="highlight-row"><span id="lbl_res_energia" style="color:var(--primary); font-weight:600;">Energía Facturada:</span> <span id="val_res_energia" style="color:var(--primary); font-weight:bold; font-size:1.05rem;">0 kWh</span></div>
+                <div class="highlight-row"><span>Total Consumo Sin IVA:</span> <span id="val_res_sin_iva">$0.00</span></div>
+                <div class="highlight-row"><span>Total Consumo Con IVA:</span> <span id="val_res_con_iva">$0.00</span></div>
+                <div class="highlight-row"><span>Total Consumo en Quetzales:</span> <span id="val_res_quetzales">Q 0.00</span></div>
+            </div>
+            
+            <div class="highlight-box">
+                <h4 class="has-tooltip" data-tooltip="Ajustes correspondientes al mes anterior aplicados en esta factura.">Mes Anterior (Ajustes)</h4>
+                <div class="highlight-row"><span>Precio de Energía Cobrada:</span> <span id="val_res_precio_cobrada">$0.00</span></div>
+                <div class="highlight-row"><span>Precio de Energía Real:</span> <span id="val_res_precio_real">$0.00</span></div>
+                <div class="highlight-row" style="border-top: 1px dashed rgba(0,0,0,0.1); margin-top: 4px; padding-top: 4px;">
+                    <span>Diferencia / Ajuste:</span> <span id="val_res_ajuste">$0.00</span>
+                </div>
+            </div>
+
+            <div class="highlight-box green">
+                <h4 class="has-tooltip" data-tooltip="Registros técnicos de demanda de potencia (kW) del mes.">Registros de Potencia (kW)</h4>
+                <div class="highlight-row"><span>Potencia Máxima:</span> <span id="val_res_pot_max">0 kW</span></div>
+                <div class="highlight-row"><span>Potencia 18:00 a 22:00:</span> <span id="val_res_pot_pico">0 kW</span></div>
+                <div class="highlight-row"><span>Potencia Contratada:</span> <span id="val_res_pot_contratada">0 kW</span></div>
+                <div class="highlight-row"><span>Demanda Firme:</span> <span id="val_res_dem_firme">0 kW</span></div>
+            </div>
+        </div>
+
+        <!-- TARJETAS ANUALES / MENSUALES AGRUPADAS -->
+        <div class="highlight-boxes-container">
+            <!-- 1. Indicadores Principales -->
+            <div class="highlight-box">
+                <h4 class="has-tooltip" data-tooltip="Acumulados y registros del periodo seleccionado.">Indicadores Principales</h4>
+                
+                <div class="highlight-row">
+                    <span id="lblCostoYTD" class="has-tooltip" data-tooltip="Suma total de todos los cargos y costos de los meses seleccionados.">Costo Total Acum. (Inc. IVA) Año</span>
+                    <div class="data-group">
+                        <span id="valCostoYTD" class="primary-val">$0.00</span>
+                        <span id="valCostoCurrent" class="secondary-val">Mes actual: $0.00</span>
+                    </div>
+                </div>
+                
+                <div class="highlight-row">
+                    <span id="lblEnergiaYTD" class="has-tooltip" data-tooltip="Total de energía activa acumulada (KWH) en los meses seleccionados.">Energía Acumulada (KWH) Año</span>
+                    <div class="data-group">
+                        <span id="valEnergiaYTD" class="primary-val">0</span>
+                        <span id="valEnergiaCurrent" class="secondary-val">Mes actual: 0</span>
+                    </div>
+                </div>
+                
+                <div class="highlight-row">
+                    <span id="lblPotenciaYTD" class="has-tooltip" data-tooltip="Suma de las potencias contratadas (KW) a lo largo de los meses.">Pot. Contratada Acumulada Año</span>
+                    <div class="data-group">
+                        <span id="valPotenciaYTD" class="primary-val">0 <span style="font-size:0.8rem; font-weight:normal; color:#6b7280; margin-left:2px;">KW</span></span>
+                        <span id="valPotenciaCurrent" class="secondary-val">Mes actual: 0 KW</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Métricas Financieras -->
+            <div class="highlight-box">
+                <h4 class="has-tooltip" data-tooltip="Desglose financiero clave y tasas de conversión.">Métricas Financieras</h4>
+                
+                <div class="highlight-row">
+                    <span id="lblCombustibleYTD" class="has-tooltip" data-tooltip="Costo total de los cargos por combustible en el año.">Cargos Combustible Año</span>
+                    <div class="data-group">
+                        <span id="valCombustibleYTD" class="primary-val">$0.00</span>
+                        <span id="valCombustibleCurrent" class="secondary-val">Mes actual: $0.00</span>
+                    </div>
+                </div>
+
+                <div class="highlight-row">
+                    <span id="lblTCYTD" class="has-tooltip" data-tooltip="Tipo de cambio registrado. (Promedio en vista anual, o valor exacto en vista mensual).">Tipo de Cambio Prom. Año</span>
+                    <div class="data-group">
+                        <span id="valTCYTD" class="primary-val">0.00</span>
+                        <span id="valTCCurrent" class="secondary-val">Mes actual: 0.00</span>
+                    </div>
+                </div>
+
+                <div class="highlight-row">
+                    <span id="lblCostoKWhYTD" class="has-tooltip" data-tooltip="Costo real por kWh (Costo Total facturado dividido por la Energía total consumida). Indica cuánto te cuesta realmente cada kWh tras sumar impuestos y peajes.">Costo Real por kWh Año</span>
+                    <div class="data-group">
+                        <span id="valCostoKWhYTD" class="primary-val">$0.00</span>
+                        <span id="valCostoKWhCurrent" class="secondary-val">Mes actual: $0.00</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="summary-cards">
+            <!-- Bajo factor de potencia aislado -->
+            <div class="card" style="max-width: 400px; border-left: 4px solid var(--warning);">
+                <h3 id="lblFPYTD" class="has-tooltip" data-tooltip="Promedio del Bajo Factor de Potencia (FP) penalizado en el año frente al registrado en el mes actual.">Bajo Factor Potencia Año</h3>
+                <div class="value" style="flex-direction:column; align-items:flex-start; gap:2px;">
+                    <span id="valFPYTD">0</span>
+                    <span id="valFPCurrent" style="font-size:0.8rem; font-weight:normal; color:#6b7280;">Mes actual: 0</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="tables-wrapper">
+            <div class="base-table-container">
+                <table id="baseTable"></table>
+            </div>
+            <div class="comp-table-container">
+                <table id="compTable"></table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         PESTAÑA 2: CALCULADORA DE PRODUCCIÓN
+         ========================================== -->
+    <div id="tab-calc" class="tab-content">
+        <!-- PASO 1: Ingreso de Factura -->
+        <div class="panel">
+            <div class="panel-header">
+                <h2>Paso 1: Datos Vinculados del Recibo Eléctrico</h2>
+                <span id="lbl_calc_period" style="background:var(--primary); color:white; padding:4px 10px; border-radius:12px; font-size:0.85rem; font-weight:bold;">Mes Base</span>
+            </div>
+            <p style="color: var(--text-muted); margin-bottom: 15px; font-size: 0.9rem;">
+                Estos valores se extraen automáticamente del <strong>Periodo Base</strong> y la <strong>Moneda</strong> que tengas seleccionados en la pestaña de Análisis.
+            </p>
+            <div class="factura-inputs">
+                <div class="input-group">
+                    <label>Costo Total Factura</label>
+                    <input type="text" id="input_factura_display" class="input-readonly" readonly value="$0.00">
+                    <input type="hidden" id="input_factura" value="0">
+                </div>
+                <div class="input-group">
+                    <label>Energía Física Consumida (kWh)</label>
+                    <input type="text" id="input_kwh_display" class="input-readonly" readonly value="0">
+                    <input type="hidden" id="input_kwh" value="0">
+                </div>
+            </div>
+        </div>
+
+        <!-- PASO 2: Ingreso de Máquinas -->
+        <div class="panel">
+            <div class="panel-header">
+                <h2>Paso 2: Registro Operativo por Máquina</h2>
+                <button class="btn-add" onclick="agregarFila()">+ Añadir Máquina</button>
+            </div>
+            
+            <p style="color: var(--text-muted); margin-bottom: 15px; font-size: 0.9rem;">
+                Modifica los valores de Tiempo Improductivo, Horas Reales, Producción y Meta. Las "Horas del Mes" y "Programadas" se calculan solas al compás de los días del mes visualizado.
+            </p>
+
+            <div class="table-responsive">
+                <table class="table-prod">
+                    <thead>
+                        <tr>
+                            <th class="has-tooltip" data-tooltip="Nombre de la línea o máquina.">Máquina</th>
+                            <th class="has-tooltip" data-tooltip="Potencia nominal (kW).">Pot. (kW)</th>
+                            <th class="has-tooltip" data-tooltip="Tiempo improductivo tolerable de Lunes a Sábado (Minutos por día). Ej. Comidas, descansos.">Improd. L-S<br><small>(min/día)</small></th>
+                            <th class="has-tooltip" data-tooltip="Tiempo improductivo tolerable los Domingos (Minutos por día).">Improd. Dom<br><small>(min/día)</small></th>
+                            <th class="has-tooltip" data-tooltip="Horas calendario totales del mes (Se calcula automáticamente).">Hrs. Mes<br><small>(Auto)</small></th>
+                            <th class="has-tooltip" data-tooltip="Horas Programadas (Horas calendario menos tiempo improductivo).">Hrs. Prog<br><small>(Auto)</small></th>
+                            <th class="has-tooltip" data-tooltip="Horas Reales de Producción ingresadas por ti.">Hrs. Prod<br><small>(Real)</small></th>
+                            <th class="has-tooltip" data-tooltip="Metros cuadrados totales fabricados en el periodo.">Producción<br><small>(m²)</small></th>
+                            <th class="has-tooltip" data-tooltip="Meta de velocidad de la máquina (m² por hora).">Meta<br><small>(m²/h)</small></th>
+                            <th>Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla_ingreso">
+                        <!-- Las filas se inyectan aquí con JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- PASO 3: Resultados -->
+        <div class="panel">
+            <div class="panel-header">
+                <h2>Paso 3: Resultados y Análisis de Costos</h2>
+            </div>
+
+            <div class="kpi-container">
+                <div class="kpi-card">
+                    <div class="kpi-title">Energía Productiva Teórica</div>
+                    <div class="kpi-value" id="kpi_kwh_util">0 kWh</div>
+                </div>
+                <div class="kpi-card alert">
+                    <div class="kpi-title" class="has-tooltip" data-tooltip="Energía facturada que no fue aprovechada directamente por los motores de las máquinas (oficinas, pérdidas, ocio, aire acondicionado).">Energía "Fantasma" / Servicios</div>
+                    <div class="kpi-value" id="kpi_kwh_fantasma">0 kWh</div>
+                    <div style="color: var(--danger); font-weight: bold; margin-top: 5px;" id="kpi_usd_fantasma">$0.00</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-title">Producción Total</div>
+                    <div class="kpi-value" id="kpi_prod_total">0 m²</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-title" class="has-tooltip" data-tooltip="Promedio global de kWh requeridos para producir un metro cuadrado (incluye la energía fantasma).">Consumo Específico (Global)</div>
+                    <div class="kpi-value" id="kpi_kwh_m2" style="color: var(--success);">0</div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600; margin-top: 5px;">kWh / m²</div>
+                </div>
+            </div>
+
+            <h3 style="margin: 20px 0 10px 0; font-size: 1.1rem;">Costo por m² y Eficiencia (Por Máquina)</h3>
+            <div class="table-responsive">
+                <table class="table-prod">
+                    <thead>
+                        <tr>
+                            <th>Máquina</th>
+                            <th>Velocidad Real</th>
+                            <th>Eficiencia</th>
+                            <th>Costo Prorrateado</th>
+                            <th style="color: var(--success);">kWh / m²</th>
+                            <th style="color: var(--primary);">Costo por m²</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla_resultados">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Gráficos -->
+        <div class="charts-container">
+            <div class="panel">
+                <h3 id="tituloChartCostos" style="margin-bottom: 15px; text-align: center; font-size:1rem;">Comparativa: Costo por m²</h3>
+                <div class="chart-box"><canvas id="chartCostos"></canvas></div>
+            </div>
+            <div class="panel">
+                <h3 id="tituloChartEficiencia" style="margin-bottom: 15px; text-align: center; font-size:1rem;">Impacto: Velocidad vs Costo por m²</h3>
+                <div class="chart-box"><canvas id="chartEficiencia"></canvas></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="toast" class="toast">Mensaje</div>
+
+<script>
+    // ==========================================
+    // SISTEMA DE PESTAÑAS (TABS)
+    // ==========================================
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        
+        document.getElementById('tab-' + tabId).classList.add('active');
+        document.getElementById('btn-tab-' + tabId).classList.add('active');
+
+        if (tabId === 'calc') {
+            actualizarGraficos(); 
+        }
+    }
+
+    // ==========================================
+    // UTILIDADES Y DICCIONARIO
+    // ==========================================
+    const conceptExplanations = {
+        'ENERGIA': 'Total de energía activa consumida en KWH. Representa el volumen de energía física que utilizaste.',
+        'POTENCIA CONTRATADA': 'Demanda máxima de potencia (KW) que reservaste con la distribuidora. Te la cobran aunque no la uses por completo.',
+        'DESVIOS DE POTENCIA': 'Infracción por exceder la Potencia Contratada (KW). Es la potencia adicional que tomaste por encima de tu límite.',
+        'VAD': 'Valor Agregado de Distribución. Cargo cobrado sobre tu pico máximo de potencia (KW) por el uso y mantenimiento de la red local de la distribuidora.',
+        'PEAJE PRIMARIO': 'Cargo por el uso del sistema principal de transmisión a nivel nacional (basado en la potencia KW).',
+        'PEAJE SECUNDARIO': 'Cargo por el uso de líneas de subtransmisión regionales (basado en la potencia KW).',
+        'BAJO FACTOR DE POTENCIA': 'Penalización aplicada cuando tu instalación produce mucha energía reactiva (Factor de Potencia menor a 0.90), restando eficiencia a la red.',
+        'CARGOS SERVICIOS COMPLEMENTARIOS': 'Cargos del Administrador del Mercado Mayorista (AMM) para asegurar que el sistema no colapse. Proporcional a tus KWH.',
+        'MER E INTERCONEXION': 'Cargos relacionados al Mercado Eléctrico Regional que conecta a Centroamérica.',
+        'EXCESO DE POTENCIA': 'Cobros y multas adicionales por poner en riesgo o superar los límites técnicos de tu conexión.',
+        'ALUMBRADO': 'Tasa municipal por el alumbrado público.',
+        'IVA': 'Impuesto al Valor Agregado.',
+        'COMBUSTIBLE': 'Cargo o ajuste variable aplicado por las fluctuaciones en el precio del combustible usado para generar electricidad.'
+    };
+
+    function getExplanation(concepto) {
+        const upper = concepto.toUpperCase();
+        for (let key in conceptExplanations) {
+            if (upper.includes(key)) return conceptExplanations[key];
+        }
+        return 'Cargo o cobro facturado por tu distribuidora eléctrica.';
+    }
+
+    function showToast(msg) {
+        const toast = document.getElementById('toast');
+        toast.textContent = msg;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    function formatMoney(num) {
+        const el = document.getElementById('displayCurrency');
+        const symbol = (el && el.value === 'GTQ') ? 'Q ' : '$ ';
+        const isInt = Math.abs(num % 1) < 0.000001;
+        return symbol + num.toLocaleString('es-GT', { minimumFractionDigits: isInt ? 0 : 2, maximumFractionDigits: 5 }); 
+    }
+
+    function formatMoney4(num) { 
+        const el = document.getElementById('displayCurrency');
+        const symbol = (el && el.value === 'GTQ') ? 'Q ' : '$ ';
+        const isInt = Math.abs(num % 1) < 0.000001;
+        return symbol + num.toLocaleString('es-GT', { minimumFractionDigits: isInt ? 0 : 4, maximumFractionDigits: 5 }); 
+    }
+
+    function formatNumber(num) { 
+        const isInt = Math.abs(num % 1) < 0.000001;
+        return num.toLocaleString('es-GT', { minimumFractionDigits: isInt ? 0 : 2, maximumFractionDigits: 5 }); 
+    }
+
+    function parseNumber(str) {
+        if (str === null || str === undefined || str === '') return 0;
+        let s = String(str).replace(/[\$Q\s]/gi, '').trim(); 
+        let lastDot = s.lastIndexOf('.');
+        let lastComma = s.lastIndexOf(',');
+        
+        if (lastDot > -1 && lastComma > -1) {
+            if (lastDot > lastComma) {
+                s = s.replace(/,/g, '');
+            } else {
+                s = s.replace(/\./g, '');
+                s = s.replace(/,/g, '.');
+            }
+        } else if (lastComma > -1) {
+            s = s.replace(/,/g, '.');
+        }
+        const num = parseFloat(s);
+        return isNaN(num) ? 0 : num;
+    }
+
+    function formatMonthYearLabel(monthYear) {
+        if (!monthYear || monthYear === "ALL") return "Acumulado Histórico";
+        const parts = monthYear.split('-');
+        if (parts.length !== 2) return monthYear;
+        const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+        const m = parseInt(parts[1], 10);
+        return `${months[m - 1]} ${parts[0]}`;
+    }
+
+    function calculateDiff(current, compareTarget) {
+        if (!compareTarget || compareTarget === 0) {
+            if(current > 0) return { text: 'Nuevo', class: 'bad' };
+            return { text: '', class: 'neutral' };
+        }
+        const diff = current - compareTarget;
+        const pct = (diff / compareTarget) * 100;
+        const prefix = diff > 0 ? '+' : '';
+        const colorClass = diff > 0 ? 'bad' : (diff < 0 ? 'good' : 'neutral'); 
+        
+        const isInt = Math.abs(pct % 1) < 0.000001;
+        return { text: `${prefix}${pct.toLocaleString('es-GT', {minimumFractionDigits: isInt ? 0 : 2, maximumFractionDigits: 5})}%`, class: colorClass };
+    }
+
+    // ==========================================
+    // INDEXEDDB PARA FACTURAS
+    // ==========================================
+    const dbName = "FacturasDB";
+    const storeName = "facturas";
+    let db;
+    let allFacturasData = []; 
+    let availablePeriods = []; 
+    let selectedComparePeriods = [];
+
+    // Global variable for days configuration (used for Horas Programadas calc)
+    let currentDaysConfig = { totalDays: 30, sundays: 4, weekdays: 26, totalHours: 720 };
+
+    function initDB() {
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open(dbName, 1);
+            request.onerror = event => reject("Error en IndexedDB");
+            request.onsuccess = event => { db = event.target.result; resolve(db); };
+            request.onupgradeneeded = event => {
+                const db = event.target.result;
+                if (!db.objectStoreNames.contains(storeName)) { db.createObjectStore(storeName, { keyPath: "id" }); }
+            };
+        });
+    }
+
+    async function saveFactura(data) {
+        return new Promise((resolve, reject) => {
+            const transaction = db.transaction([storeName], "readwrite");
+            const store = transaction.objectStore(storeName);
+            const request = store.put(data);
+            request.onsuccess = () => resolve();
+            request.onerror = () => reject();
+        });
+    }
+
+    async function getAllFacturas() {
+        return new Promise((resolve, reject) => {
+            const transaction = db.transaction([storeName], "readonly");
+            const store = transaction.objectStore(storeName);
+            const request = store.getAll();
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject();
+        });
+    }
+
+    async function clearDatabase() {
+        if (!confirm('¿Estás seguro de que quieres borrar todo el historial acumulado?')) return;
+        return new Promise((resolve, reject) => {
+            const transaction = db.transaction([storeName], "readwrite");
+            const store = transaction.objectStore(storeName);
+            const request = store.clear();
+            request.onsuccess = () => {
+                showToast("Historial borrado.");
+                loadDataAndRefresh();
+                resolve();
+            };
+        });
+    }
+
+    // ==========================================
+    // IMPORT / EXPORT JSON Y CSV
+    // ==========================================
+    async function exportJSON() {
+        const facturas = await getAllFacturas();
+        const exportData = { facturas: facturas, maquinas: datosMaquinas };
+        const dataStr = JSON.stringify(exportData, null, 2);
+        const blob = new Blob([dataStr], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Copia_Seguridad_Integral_${new Date().toISOString().slice(0,10)}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    document.getElementById('jsonInput').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = async function(event) {
+            try {
+                const data = JSON.parse(event.target.result);
+                let facturasToImport = [];
+
+                if (Array.isArray(data)) {
+                    facturasToImport = data; 
+                } else if (data && data.facturas) {
+                    facturasToImport = data.facturas; 
+                    if (data.maquinas && Array.isArray(data.maquinas)) {
+                        datosMaquinas = data.maquinas;
+                        // Migración a nueva estructura de horas
+                        datosMaquinas = datosMaquinas.map(m => {
+                            if (m.minLS === undefined) { m.minLS = 80; m.minDom = 110; }
+                            if (m.horas !== undefined && m.horasProd === undefined) { m.horasProd = m.horas; delete m.horas; }
+                            m.horasMes = m.horasMes || 720;
+                            m.horasProg = m.horasProg || 720;
+                            return m;
+                        });
+                        guardarMaquinasEnLocalStorage();
+                        renderTablaIngreso();
+                    }
+                } else { throw new Error("Formato inválido"); }
+                
+                let count = 0;
+                for (const item of facturasToImport) {
+                    if (item.id && item.items) { await saveFactura(item); count++; }
+                }
+                showToast(`Se importaron ${count} facturas correctamente.`);
+                
+                loadDataAndRefresh();     
+            } catch (err) { showToast("Error al importar: Archivo JSON no válido."); }
+            e.target.value = '';
+        };
+        reader.readAsText(file);
+    });
+
+    document.getElementById('csvInput').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = async function(event) {
+            const text = event.target.result;
+            const parsedData = processCSV(text);
+            if (parsedData.items.length === 0) { showToast("No se encontraron datos válidos en el CSV."); return; }
+            await saveFactura(parsedData);
+            showToast("Factura CSV importada correctamente.");
+            
+            loadDataAndRefresh(parsedData.monthYear); 
+            e.target.value = '';
+        };
+        reader.readAsText(file);
+    });
+
+    function getMonthYearFromText(text) {
+        const upper = text.toUpperCase();
+        const months = ["ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO", "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"];
+        let m = "00";
+        for (let i = 0; i < 12; i++) {
+            if (upper.includes(months[i])) { m = String(i + 1).padStart(2, '0'); break; }
+        }
+        const yearMatch = upper.match(/\d{4}/);
+        const y = yearMatch ? yearMatch[0] : "0000";
+        if (m !== "00" && y !== "0000") return `${y}-${m}`;
+        return null; 
+    }
+
+    function extractAllNumbers(cols, startIdx) {
+        let nums = [];
+        for (let i = startIdx + 1; i < cols.length; i++) {
+            let cell = cols[i].trim();
+            if (cell !== '' && /[\d]/.test(cell)) {
+                if (cell.toUpperCase() !== 'KW' && cell.toUpperCase() !== 'KWH' && cell !== '=' && cell.toUpperCase() !== 'X') {
+                    let n = parseNumber(cell);
+                    if (!isNaN(n)) nums.push(n);
+                }
+            }
+        }
+        return nums;
+    }
+
+    function processCSV(text) {
+        const lines = text.split('\n');
+        let periodoId = "Factura_" + Date.now(); 
+        let monthYear = null;
+        let tc = null;
+
+        for (let line of lines) {
+            let upper = line.toUpperCase();
+            
+            const matchPeriodo = upper.match(/PERIODO DEL .* \d{4}/);
+            if (matchPeriodo && !monthYear) {
+                periodoId = matchPeriodo[0].trim();
+                monthYear = getMonthYearFromText(periodoId);
+            }
+            
+            if (upper.includes('CAMBIO') || upper.includes('US$')) {
+                let tcMatch = upper.match(/([0-9]+[.,][0-9]+)/g);
+                if (tcMatch) {
+                    for(let m of tcMatch) {
+                        let parsedTC = parseNumber(m);
+                        if (parsedTC > 5 && parsedTC < 15) {
+                            tc = parsedTC;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (!monthYear) {
+            const d = new Date();
+            monthYear = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        }
+
+        const items = [];
+        let orderCounter = 0; 
+        const resumen = { totalSinIva: 0, totalConIva: 0, totalQuetzales: 0, precioCobrada: 0, precioReal: 0, ajustePrecio: 0, potenciaMaxima: 0, potenciaPico: 0, demandaFirme: 0 };
+
+        for (let line of lines) {
+            const cols = line.split(';');
+            if (cols.length < 3) continue;
+
+            let concepto = '';
+            let conceptoIdx = -1;
+            for (let i = 0; i < cols.length; i++) {
+                let cell = cols[i].trim();
+                if (cell.length > 0) {
+                    concepto = cell;
+                    conceptoIdx = i;
+                    break;
+                }
+            }
+
+            if (!concepto) continue;
+
+            // IGNORAR FILAS QUE SEAN SOLAMENTE NÚMEROS HUÉRFANOS
+            if (!isNaN(parseNumber(concepto)) && !/[a-zA-Z]/.test(concepto)) {
+                continue;
+            }
+
+            const upperConcept = concepto.toUpperCase();
+            
+            // --- EXTRACCIÓN DE DATOS RESALTADOS ---
+            let isSummary = false;
+            if (upperConcept.includes('TOTAL CONSUMO SIN IVA')) { resumen.totalSinIva = extractAllNumbers(cols, conceptoIdx)[0] || 0; isSummary = true; }
+            else if (upperConcept.includes('TOTAL CONSUMO CON IVA')) { resumen.totalConIva = extractAllNumbers(cols, conceptoIdx)[0] || 0; isSummary = true; }
+            else if (upperConcept.includes('TOTAL CONSUMO EN QUETZALES')) { resumen.totalQuetzales = extractAllNumbers(cols, conceptoIdx)[0] || 0; isSummary = true; }
+            else if (upperConcept === 'MES ANTERIOR') { isSummary = true; }
+            else if (upperConcept.includes('PRECIO DE ENERGIA COBRADA')) { 
+                resumen.precioCobrada = extractAllNumbers(cols, conceptoIdx)[0] || 0; 
+                isSummary = true; 
+            }
+            else if (upperConcept.includes('AJUSTE PRECIO DE ENERGIA')) { 
+                let nums = extractAllNumbers(cols, conceptoIdx);
+                if (nums.length >= 2) {
+                    resumen.precioReal = nums[0]; 
+                    resumen.ajustePrecio = nums[1]; 
+                } else if (nums.length === 1) {
+                    resumen.ajustePrecio = nums[0];
+                }
+                isSummary = true; 
+            }
+            else if (upperConcept === 'POTENCIA MAXIMA' || upperConcept === 'POTENCIA MÁXIMA') { 
+                resumen.potenciaMaxima = extractAllNumbers(cols, conceptoIdx)[0] || 0; 
+                isSummary = true; 
+            }
+            else if (upperConcept.includes('POTENCIA ENTRE 18:00 Y 22:00')) { 
+                resumen.potenciaPico = extractAllNumbers(cols, conceptoIdx)[0] || 0; 
+                isSummary = true; 
+            }
+            else if (upperConcept === 'DEMANDA FIRME') { 
+                resumen.demandaFirme = extractAllNumbers(cols, conceptoIdx)[0] || 0; 
+                isSummary = true; 
+            }
+
+            if (isSummary) continue; 
+
+            let isIgnored = false;
+            const ignoreExact = ['TOTAL', 'CONCEPTO', 'PRECIO', 'KW', 'KWH', 'V. ORIGINAL'];
+            const ignoreStarts = ['COMPAÑIA', 'PERIODO', 'DETALLE DE COBRO', 'SUB - TOTAL', 'SUB-TOTAL', 'SUB TOTAL', 'TOTAL FACTURA', 'TIPO DE CAMBIO'];
+            
+            if (ignoreExact.includes(upperConcept)) isIgnored = true;
+            ignoreStarts.forEach(w => { if(upperConcept.startsWith(w)) isIgnored = true; });
+
+            if (isIgnored) continue;
+
+            if (upperConcept.includes('IMPUESTO AL VALOR AGREGADO') || upperConcept === 'IVA') {
+                concepto = 'IVA';
+            }
+
+            let numCosto = 0, numCantidad = 0, numPrecio = 0;
+            let unidad = '-';
+            let originalCurrency = 'USD';
+
+            let idxEqual = cols.findIndex(c => c.trim() === '=');
+            
+            if (idxEqual !== -1) {
+                numCosto = parseNumber(cols[idxEqual + 1]);
+                numPrecio = parseNumber(cols[idxEqual - 1]);
+                unidad = cols[idxEqual - 3] ? cols[idxEqual - 3].trim().toUpperCase() : '-';
+                numCantidad = parseNumber(cols[idxEqual - 4]);
+                
+                if ((cols[idxEqual + 1] || '').toUpperCase().includes('Q')) {
+                    originalCurrency = 'GTQ';
+                }
+            } else {
+                for (let i = cols.length - 1; i > conceptoIdx; i--) {
+                    let cell = cols[i].trim();
+                    if (cell.length > 0) {
+                        numCosto = parseNumber(cell);
+                        if (cell.toUpperCase().includes('Q')) originalCurrency = 'GTQ';
+                        break;
+                    }
+                }
+            }
+
+            if (numCosto !== 0 || numCantidad !== 0) {
+                if (unidad !== 'KW' && unidad !== 'KWH') unidad = '-';
+
+                items.push({
+                    concepto: concepto,
+                    cantidad: numCantidad,
+                    unidad: unidad,
+                    precioUnitario: numPrecio,
+                    costo: numCosto,
+                    moneda: originalCurrency,
+                    order: orderCounter++ 
+                });
+            }
+        }
+        return { id: periodoId, monthYear: monthYear, items: items, resumen: resumen, tipoCambio: tc, timestamp: Date.now() };
+    }
+
+    // ==========================================
+    // AGREGACIÓN, FILTROS Y VISTA (DASHBOARD)
+    // ==========================================
+    function aggregateData(facturas, targetMonthYear, displayCurrency, userTC) {
+        let totalCosto = 0;
+        const conceptosMap = new Map();
+
+        let kpis = {
+            energiaTotal: 0,
+            potenciaContratada: 0,
+            combustibleTotal: 0,
+            fpValor: 0,
+            costoTotal: 0,
+            tipoCambio: userTC,
+            costoPorKWh: 0,
+            resumenStats: { totalSinIva: 0, totalConIva: 0, totalQuetzales: 0, precioCobrada: 0, precioReal: 0, ajustePrecio: 0, potenciaMaxima: 0, potenciaPico: 0, demandaFirme: 0 }
+        };
+
+        const filtered = targetMonthYear === "ALL" ? facturas : facturas.filter(f => f.monthYear === targetMonthYear);
+
+        let tcSum = 0, tcCount = 0;
+        let fpSum = 0, fpCount = 0;
+        
+        let sumEnergia = 0;
+        let sumPotencia = 0;
+
+        filtered.forEach(factura => {
+            if (factura.tipoCambio) { tcSum += factura.tipoCambio; tcCount++; }
+            
+            if (factura.resumen) {
+                let c_sinIva = factura.resumen.totalSinIva || 0;
+                let c_conIva = factura.resumen.totalConIva || 0;
+                let c_precCob = factura.resumen.precioCobrada || 0;
+                let c_precReal = factura.resumen.precioReal || 0;
+                let c_ajuste = factura.resumen.ajustePrecio || 0;
+                
+                if (displayCurrency === 'GTQ') {
+                    c_sinIva *= userTC;
+                    c_conIva *= userTC;
+                    c_precCob *= userTC;
+                    c_precReal *= userTC;
+                    c_ajuste *= userTC;
+                }
+                
+                kpis.resumenStats.totalSinIva += c_sinIva;
+                kpis.resumenStats.totalConIva += c_conIva;
+                kpis.resumenStats.totalQuetzales += (factura.resumen.totalQuetzales || 0);
+                kpis.resumenStats.precioCobrada += c_precCob;
+                kpis.resumenStats.precioReal += c_precReal;
+                kpis.resumenStats.ajustePrecio += c_ajuste;
+
+                kpis.resumenStats.potenciaMaxima = Math.max(kpis.resumenStats.potenciaMaxima, factura.resumen.potenciaMaxima || 0);
+                kpis.resumenStats.potenciaPico = Math.max(kpis.resumenStats.potenciaPico, factura.resumen.potenciaPico || 0);
+                kpis.resumenStats.demandaFirme = Math.max(kpis.resumenStats.demandaFirme, factura.resumen.demandaFirme || 0);
+            }
+
+            let maxKWH_Factura = 0;
+            let energiaReal = null;
+            let pot_Factura = 0;
+
+            factura.items.forEach(item => {
+                let itemCosto = item.costo;
+                let itemPrecio = item.precioUnitario || 0;
+                let monedaOriginal = item.moneda || 'USD';
+
+                if (monedaOriginal === 'USD' && displayCurrency === 'GTQ') {
+                    itemCosto *= userTC;
+                    itemPrecio *= userTC;
+                } else if (monedaOriginal === 'GTQ' && displayCurrency === 'USD') {
+                    itemCosto /= userTC;
+                    itemPrecio /= userTC;
+                }
+
+                totalCosto += itemCosto;
+
+                const upperConcept = item.concepto.toUpperCase();
+
+                if (item.unidad === 'KWH') {
+                    maxKWH_Factura = Math.max(maxKWH_Factura, item.cantidad);
+                    if (upperConcept === 'ENERGIA' || upperConcept === 'ENERGÍA') {
+                        energiaReal = item.cantidad;
+                    }
+                }
+                
+                if (upperConcept.includes('POTENCIA CONTRATADA')) pot_Factura = item.cantidad;
+                if (upperConcept.includes('BAJO FACTOR DE POTENCIA')) { fpSum += item.cantidad; fpCount++; }
+                if (upperConcept.includes('COMBUSTIBLE')) kpis.combustibleTotal += itemCosto;
+
+                const key = item.concepto + "|" + item.unidad;
+                
+                if (!conceptosMap.has(key)) {
+                    conceptosMap.set(key, { 
+                        concepto: item.concepto, 
+                        unidad: item.unidad, 
+                        cantidad: 0, 
+                        costo: 0, 
+                        precioUnitario: itemPrecio, 
+                        order: item.order 
+                    });
+                }
+                
+                const acc = conceptosMap.get(key);
+                acc.cantidad += item.cantidad;
+                acc.costo += itemCosto;
+                acc.order = Math.min(acc.order, item.order);
+            });
+            
+            sumEnergia += (energiaReal !== null ? energiaReal : maxKWH_Factura);
+            sumPotencia += pot_Factura;
+        });
+
+        kpis.energiaTotal = sumEnergia;
+        kpis.potenciaContratada = sumPotencia;
+        kpis.fpValor = fpCount > 0 ? (fpSum / fpCount) : 0;
+        kpis.costoTotal = totalCosto;
+        kpis.tipoCambio = tcCount > 0 ? (tcSum / tcCount) : userTC;
+        kpis.costoPorKWh = kpis.energiaTotal > 0 ? (kpis.costoTotal / kpis.energiaTotal) : 0;
+
+        let maxKWHBase = 0;
+        let maxKWBase = 0;
+        const conceptosArr = Array.from(conceptosMap.values()).sort((a, b) => a.order - b.order);
+        
+        conceptosArr.forEach(c => {
+            if (c.unidad === 'KWH') maxKWHBase = Math.max(maxKWHBase, c.cantidad);
+            if (c.unidad === 'KW') maxKWBase = Math.max(maxKWBase, c.cantidad);
+
+            if (targetMonthYear === "ALL" && c.cantidad > 0 && c.costo > 0) {
+                c.precioUnitario = c.costo / c.cantidad;
+            }
+        });
+
+        return { totalCosto, maxKWHBase, maxKWBase, conceptos: conceptosArr, kpis: kpis };
+    }
+
+    // Configuración y recuento de días exactos del mes
+    function updateDaysConfig() {
+        const periodo = document.getElementById('periodSelect').value;
+        const targetYear = periodo === 'ALL' ? (availablePeriods.length > 0 ? availablePeriods[0].split('-')[0] : new Date().getFullYear().toString()) : periodo.split('-')[0];
+        
+        let conf = { totalDays: 0, sundays: 0, weekdays: 0, totalHours: 0 };
+        let periodsToProcess = periodo === 'ALL' ? availablePeriods.filter(p => p.startsWith(targetYear)) : [periodo];
+        
+        if (periodsToProcess.length === 0) {
+            currentDaysConfig = { totalDays: 30, sundays: 4, weekdays: 26, totalHours: 720 };
+            return;
+        }
+
+        periodsToProcess.forEach(p => {
+            const parts = p.split('-');
+            if(parts.length === 2) {
+                const y = parseInt(parts[0], 10);
+                const m = parseInt(parts[1], 10);
+                const daysInMonth = new Date(y, m, 0).getDate();
+                let sundays = 0;
+                for(let i=1; i<=daysInMonth; i++) {
+                    if (new Date(y, m-1, i).getDay() === 0) sundays++;
+                }
+                conf.totalDays += daysInMonth;
+                conf.sundays += sundays;
+                conf.weekdays += (daysInMonth - sundays);
+                conf.totalHours += (daysInMonth * 24);
+            }
+        });
+        currentDaysConfig = conf;
+    }
+
+    function renderMatrix() {
+        const monthsNames = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+        const years = [...new Set(availablePeriods.map(p => p.split('-')[0]))].sort((a,b)=>b-a);
+        
+        let html = `<table class="matrix-table"><thead><tr><th>Año \\ Mes</th>`;
+        for(let i=1; i<=12; i++) {
+            let m = String(i).padStart(2, '0');
+            html += `<th><label><input type="checkbox" onchange="toggleMatrixMonth('${m}', this.checked)"> ${monthsNames[i-1]}</label></th>`;
+        }
+        html += `</tr></thead><tbody>`;
+
+        if(years.length === 0) { html += `<tr><td colspan="13" style="padding:10px;">No hay años registrados</td></tr>`; }
+
+        years.forEach(y => {
+            html += `<tr><td><label><input type="checkbox" onchange="toggleMatrixYear('${y}', this.checked)"> <strong>${y}</strong></label></td>`;
+            for(let i=1; i<=12; i++) {
+                let m = String(i).padStart(2, '0');
+                let period = `${y}-${m}`;
+                let disabled = availablePeriods.includes(period) ? '' : 'disabled';
+                let checked = selectedComparePeriods.includes(period) ? 'checked' : '';
+                html += `<td>
+                            <label style="${disabled ? 'opacity:0.3; cursor:not-allowed;' : ''}">
+                                <input type="checkbox" class="cb-matrix cb-y-${y} cb-m-${m}" value="${period}" ${disabled} ${checked} onchange="onMatrixChange()">
+                            </label>
+                         </td>`;
+            }
+            html += `</tr>`;
+        });
+        html += `</tbody></table>`;
+        document.getElementById('matrixContainer').innerHTML = html;
+    }
+
+    function toggleMatrixMonth(m, isChecked) { document.querySelectorAll(`.cb-m-${m}:not([disabled])`).forEach(cb => { cb.checked = isChecked; }); onMatrixChange(); }
+    function toggleMatrixYear(y, isChecked) { document.querySelectorAll(`.cb-y-${y}:not([disabled])`).forEach(cb => { cb.checked = isChecked; }); onMatrixChange(); }
+    function onMatrixChange() { selectedComparePeriods = Array.from(document.querySelectorAll('.cb-matrix:checked')).map(cb => cb.value).sort().reverse(); updateDashboardView(); }
+
+    async function loadDataAndRefresh(forceSelectMonth = null) {
+        allFacturasData = await getAllFacturas();
+        allFacturasData.forEach(f => { if(!f.monthYear) f.monthYear = getMonthYearFromText(f.id) || "Desconocido"; });
+
+        const periodosSet = new Set(allFacturasData.map(f => f.monthYear).filter(m => m !== "Desconocido"));
+        availablePeriods = Array.from(periodosSet).sort().reverse(); 
+
+        const pSelect = document.getElementById('periodSelect');
+        pSelect.innerHTML = '<option value="ALL">Todo el Historial Acumulado</option>';
+        availablePeriods.forEach(p => { pSelect.innerHTML += `<option value="${p}">${formatMonthYearLabel(p)}</option>`; });
+
+        if (forceSelectMonth === "ALL") { 
+            pSelect.value = "ALL"; 
+        } else if (forceSelectMonth && availablePeriods.includes(forceSelectMonth)) { 
+            pSelect.value = forceSelectMonth; 
+        } else if (availablePeriods.length > 0) { 
+            pSelect.value = availablePeriods[0]; 
+        } else { 
+            pSelect.value = "ALL"; 
+        }
+
+        if (pSelect.value !== "ALL") {
+            const baseFactura = allFacturasData.find(f => f.monthYear === pSelect.value);
+            if (baseFactura && baseFactura.tipoCambio) {
+                document.getElementById('manualTC').value = baseFactura.tipoCambio;
+            }
+        }
+
+        renderMatrix();
+        updateDashboardView();
+    }
+
+    function onFilterChange() { 
+        const currentPeriod = document.getElementById('periodSelect').value;
+        if (currentPeriod !== 'ALL') {
+            const baseFactura = allFacturasData.find(f => f.monthYear === currentPeriod);
+            if (baseFactura && baseFactura.tipoCambio) {
+                document.getElementById('manualTC').value = baseFactura.tipoCambio;
+            }
+        }
+        updateDashboardView(); 
+    }
+
+    function navigate(dir) {
+        const pSelect = document.getElementById('periodSelect');
+        if (pSelect.value === 'ALL') {
+            if (availablePeriods.length > 0) pSelect.value = availablePeriods[0];
+        } else {
+            const idx = availablePeriods.indexOf(pSelect.value);
+            if (idx !== -1) {
+                let newIdx = idx - dir; 
+                if (newIdx >= 0 && newIdx < availablePeriods.length) {
+                    pSelect.value = availablePeriods[newIdx];
+                    onFilterChange();
+                    return;
+                }
+            }
+        }
+        updateDashboardView();
+    }
+
+    function updateDashboardView() {
+        const currentPeriod = document.getElementById('periodSelect').value;
+        const viewMode = document.querySelector('input[name="viewMode"]:checked').value;
+        const showKW = viewMode === 'ALL' || viewMode === 'KW';
+        const showCost = viewMode === 'ALL' || viewMode === 'COST';
+        const isAll = currentPeriod === 'ALL';
+        const idx = availablePeriods.indexOf(currentPeriod);
+
+        const displayCurrency = document.getElementById('displayCurrency').value;
+        const manualTC = parseFloat(document.getElementById('manualTC').value) || 7.80;
+
+        document.getElementById('btnPrev').disabled = isAll || idx >= availablePeriods.length - 1;
+        document.getElementById('btnNext').disabled = isAll || idx <= 0;
+
+        document.querySelectorAll('.cb-matrix').forEach(cb => {
+            if (cb.value === currentPeriod && !isAll) {
+                cb.disabled = true;
+                if (cb.checked) cb.checked = false; 
+                cb.parentElement.style.opacity = '0.3'; cb.parentElement.style.cursor = 'not-allowed';
+            } else if (availablePeriods.includes(cb.value)) {
+                cb.disabled = false; cb.parentElement.style.opacity = '1'; cb.parentElement.style.cursor = 'pointer';
+            }
+        });
+        selectedComparePeriods = Array.from(document.querySelectorAll('.cb-matrix:checked')).map(cb => cb.value).sort().reverse();
+
+        const targetYear = isAll ? (availablePeriods.length > 0 ? availablePeriods[0].split('-')[0] : new Date().getFullYear()) : currentPeriod.split('-')[0];
+        
+        // CÁLCULO DE DÍAS Y HORAS PARA EL MES ACTIVO
+        updateDaysConfig();
+
+        // Base Aggregation Metrics
+        const baseAgg = aggregateData(allFacturasData, currentPeriod, displayCurrency, manualTC);
+        const ytdAgg = aggregateData(allFacturasData.filter(f => f.monthYear !== "Desconocido" && f.monthYear.startsWith(targetYear)), "ALL", displayCurrency, manualTC);
+
+        document.getElementById('input_factura').value = baseAgg.kpis.costoTotal;
+        document.getElementById('input_factura_display').value = formatMoney(baseAgg.kpis.costoTotal);
+        document.getElementById('input_kwh').value = baseAgg.kpis.energiaTotal;
+        document.getElementById('input_kwh_display').value = formatNumber(baseAgg.kpis.energiaTotal);
+        document.getElementById('lbl_calc_period').innerText = isAll ? `Acumulado Histórico (${targetYear})` : formatMonthYearLabel(currentPeriod);
+        
+        // --- ACTUALIZAR CUADROS RESALTADOS ---
+        document.getElementById('lbl_res_energia').textContent = isAll ? 'Energía Total Acumulada:' : 'Energía Facturada:';
+        document.getElementById('val_res_energia').textContent = formatNumber(baseAgg.kpis.energiaTotal) + ' kWh';
+        document.getElementById('val_res_sin_iva').textContent = formatMoney(baseAgg.kpis.resumenStats.totalSinIva);
+        document.getElementById('val_res_con_iva').textContent = formatMoney(baseAgg.kpis.resumenStats.totalConIva);
+        document.getElementById('val_res_quetzales').textContent = 'Q ' + formatNumber(baseAgg.kpis.resumenStats.totalQuetzales);
+        
+        document.getElementById('val_res_precio_cobrada').textContent = formatMoney(baseAgg.kpis.resumenStats.precioCobrada);
+        document.getElementById('val_res_precio_real').textContent = formatMoney(baseAgg.kpis.resumenStats.precioReal || 0);
+        
+        const adjEl = document.getElementById('val_res_ajuste');
+        adjEl.textContent = formatMoney(baseAgg.kpis.resumenStats.ajustePrecio);
+        if (baseAgg.kpis.resumenStats.ajustePrecio < 0) {
+            adjEl.style.color = 'var(--good)';
+        } else if (baseAgg.kpis.resumenStats.ajustePrecio > 0) {
+            adjEl.style.color = 'var(--danger)';
+        } else {
+            adjEl.style.color = '#111';
+        }
+
+        document.getElementById('val_res_pot_max').textContent = formatNumber(baseAgg.kpis.resumenStats.potenciaMaxima) + ' kW';
+        document.getElementById('val_res_pot_pico').textContent = formatNumber(baseAgg.kpis.resumenStats.potenciaPico) + ' kW';
+        document.getElementById('val_res_dem_firme').textContent = formatNumber(baseAgg.kpis.resumenStats.demandaFirme) + ' kW';
+        document.getElementById('val_res_pot_contratada').textContent = formatNumber(isAll ? ytdAgg.kpis.potenciaContratada : baseAgg.kpis.potenciaContratada) + ' kW';
+
+        // --- TARJETAS SUPERIORES / KPI BOXES ---
+        document.getElementById('lblCostoYTD').textContent = `Costo Total Acum. (Inc. IVA) Año ${targetYear}`;
+        document.getElementById('lblEnergiaYTD').textContent = `Energía Acumulada (KWH) Año ${targetYear}`;
+        document.getElementById('lblPotenciaYTD').textContent = `Pot. Contratada Acumulada Año ${targetYear}`;
+        
+        document.getElementById('lblCombustibleYTD').textContent = `Cargos Combustible Año ${targetYear}`;
+        document.getElementById('lblTCYTD').textContent = `Tipo de Cambio Prom. Año ${targetYear}`;
+        document.getElementById('lblCostoKWhYTD').textContent = `Costo Real por kWh Año ${targetYear}`;
+
+        document.getElementById('lblFPYTD').textContent = `Bajo Factor de Potencia Prom. Año ${targetYear}`;
+
+        document.getElementById('valCostoYTD').textContent = formatMoney(ytdAgg.kpis.costoTotal);
+        document.getElementById('valEnergiaYTD').textContent = formatNumber(ytdAgg.kpis.energiaTotal);
+        document.getElementById('valPotenciaYTD').innerHTML = `${formatNumber(ytdAgg.kpis.potenciaContratada)} <span style="font-size:0.8rem; font-weight:normal; color:#6b7280; margin-left:4px;">KW</span>`;
+        
+        document.getElementById('valCombustibleYTD').textContent = formatMoney(ytdAgg.kpis.combustibleTotal);
+        document.getElementById('valTCYTD').textContent = `Q${formatNumber(ytdAgg.kpis.tipoCambio)} x $1`;
+        document.getElementById('valCostoKWhYTD').textContent = formatMoney4(ytdAgg.kpis.costoPorKWh);
+
+        document.getElementById('valFPYTD').textContent = formatNumber(ytdAgg.kpis.fpValor);
+        
+        if (isAll) {
+            document.getElementById('valCostoCurrent').textContent = `* Suma de todos los meses de ${targetYear}`;
+            document.getElementById('valEnergiaCurrent').textContent = `* Suma de todos los meses de ${targetYear}`;
+            document.getElementById('valPotenciaCurrent').textContent = `* Suma de todos los meses de ${targetYear}`;
+            
+            document.getElementById('valCombustibleCurrent').textContent = `* Suma de todos los meses de ${targetYear}`;
+            document.getElementById('valTCCurrent').textContent = `* Promedio de todos los meses de ${targetYear}`;
+            document.getElementById('valCostoKWhCurrent').textContent = `* Promedio de todos los meses de ${targetYear}`;
+
+            document.getElementById('valFPCurrent').textContent = `* Promedio de todos los meses de ${targetYear}`;
+        } else {
+            document.getElementById('valCostoCurrent').textContent = `Mes Actual Analizado: ${formatMoney(baseAgg.kpis.costoTotal)}`;
+            document.getElementById('valEnergiaCurrent').textContent = `Mes Actual Analizado: ${formatNumber(baseAgg.kpis.energiaTotal)}`;
+            document.getElementById('valPotenciaCurrent').textContent = `Mes Actual Analizado: ${formatNumber(baseAgg.kpis.potenciaContratada)} KW`;
+            
+            document.getElementById('valCombustibleCurrent').textContent = `Mes Actual Analizado: ${formatMoney(baseAgg.kpis.combustibleTotal)}`;
+            document.getElementById('valTCCurrent').textContent = `Mes Actual Analizado: Q${formatNumber(baseAgg.kpis.tipoCambio)} x $1`;
+            document.getElementById('valCostoKWhCurrent').textContent = `Mes Actual Analizado: ${formatMoney4(baseAgg.kpis.costoPorKWh)}`;
+
+            document.getElementById('valFPCurrent').textContent = `Mes Actual Analizado: ${formatNumber(baseAgg.kpis.fpValor)}`;
+        }
+
+        // Recalcular Produccion ahora usando currentDaysConfig
+        calcularTodo();
+
+        // --- TABLAS DE ANÁLISIS ---
+        const compAggs = selectedComparePeriods.map(p => ({ period: p, data: aggregateData(allFacturasData, p, displayCurrency, manualTC) }));
+
+        let baseThead = `<tr><th rowspan="2">Concepto</th>`;
+        if (showKW) baseThead += `<th colspan="3" class="text-center border-bottom-thin">Consumo / Registro</th>`; 
+        if (showCost) baseThead += `<th rowspan="2" class="text-right">Costo Total</th>`;
+        baseThead += `</tr><tr>`;
+        if (showKW) baseThead += `<th class="text-right">Cantidad</th><th>Und</th><th class="text-right">Precio Unit.</th>`; 
+        baseThead += `</tr>`;
+
+        let compThead = `<tr>`;
+        if (compAggs.length === 0) {
+            let colsCount = (showKW ? 1 : 0) + (showCost ? 1 : 0);
+            if (colsCount === 0) colsCount = 1;
+            compThead += `<th colspan="${colsCount}" class="comp-header-group border-bottom-thin" style="background:#e0e7ff; color:#3730a3;">Análisis y Porcentajes de Volumen Físico</th></tr><tr>`;
+            if (showKW) compThead += `<th class="compare-col">% de Uso de Capacidad / Energía</th>`;
+            if (showCost) compThead += `<th class="compare-col">% de Impacto en Factura</th>`;
+            compThead += `</tr>`;
+        } else {
+            compAggs.forEach(c => {
+                let colsCount = (showKW ? 1 : 0) + (showCost ? 1 : 0);
+                compThead += `<th colspan="${colsCount}" class="comp-header-group border-bottom-thin">Vs. ${formatMonthYearLabel(c.period)}</th>`;
+            });
+            compThead += `</tr><tr>`;
+            compAggs.forEach(c => {
+                if(showKW) compThead += `<th class="text-right compare-col">Diferencia Kw.</th>`;
+                if(showCost) compThead += `<th class="text-right compare-col">Diferencia Costo</th>`;
+            });
+            compThead += `</tr>`;
+        }
+
+        let baseTbody = '', compTbody = '';
+
+        // --- INYECCIÓN DE MÉTRICAS PRINCIPALES COMO FILAS EN LA TABLA ---
+        if (compAggs.length > 0) {
+            const kpiDefinitions = [
+                { label: "Costo Total de Conceptos", tooltip: "Suma de todos los cargos de la factura", baseVal: baseAgg.kpis.costoTotal, getCompVal: (c) => c.data.kpis.costoTotal, isCost: true, formatFn: formatMoney },
+                { label: "Energía Física Facturada", tooltip: "Energía activa consumida", baseVal: baseAgg.kpis.energiaTotal, getCompVal: (c) => c.data.kpis.energiaTotal, isCost: false, formatFn: (v) => formatNumber(v) + ' kWh' },
+                { label: "Potencia Máxima", tooltip: "Potencia máxima registrada en el mes", baseVal: baseAgg.kpis.resumenStats.potenciaMaxima, getCompVal: (c) => c.data.kpis.resumenStats.potenciaMaxima, isCost: false, formatFn: (v) => formatNumber(v) + ' kW' },
+                { label: "Potencia 18:00 a 22:00", tooltip: "Pico de potencia en horario restringido", baseVal: baseAgg.kpis.resumenStats.potenciaPico, getCompVal: (c) => c.data.kpis.resumenStats.potenciaPico, isCost: false, formatFn: (v) => formatNumber(v) + ' kW' },
+                { label: "Potencia Contratada", tooltip: "Potencia contratada mensual", baseVal: baseAgg.kpis.potenciaContratada, getCompVal: (c) => c.data.kpis.potenciaContratada, isCost: false, formatFn: (v) => formatNumber(v) + ' kW' },
+                { label: "Demanda Firme", tooltip: "Demanda firme mensual", baseVal: baseAgg.kpis.resumenStats.demandaFirme, getCompVal: (c) => c.data.kpis.resumenStats.demandaFirme, isCost: false, formatFn: (v) => formatNumber(v) + ' kW' },
+                { label: "Bajo Factor de Potencia", tooltip: "Bajo factor de potencia registrado", baseVal: baseAgg.kpis.fpValor, getCompVal: (c) => c.data.kpis.fpValor, isCost: false, formatFn: (v) => formatNumber(v) },
+                { label: "Cargos por Combustible", tooltip: "Cargos aplicados por combustible", baseVal: baseAgg.kpis.combustibleTotal, getCompVal: (c) => c.data.kpis.combustibleTotal, isCost: true, formatFn: formatMoney },
+                { label: "Costo Real por kWh", tooltip: "Costo total facturado dividido por la energía física", baseVal: baseAgg.kpis.costoPorKWh, getCompVal: (c) => c.data.kpis.costoPorKWh, isCost: true, formatFn: formatMoney4 },
+                { label: "Tipo de Cambio Aplicado", tooltip: "Tasa de cambio de la factura", baseVal: baseAgg.kpis.tipoCambio, getCompVal: (c) => c.data.kpis.tipoCambio, isCost: false, formatFn: (v) => 'Q ' + formatNumber(v) },
+                { label: "Total Consumo Sin IVA", tooltip: "Subtotal facturado (Resumen)", baseVal: baseAgg.kpis.resumenStats.totalSinIva, getCompVal: (c) => c.data.kpis.resumenStats.totalSinIva, isCost: true, formatFn: formatMoney },
+                { label: "Total Consumo Con IVA", tooltip: "Total facturado (Resumen)", baseVal: baseAgg.kpis.resumenStats.totalConIva, getCompVal: (c) => c.data.kpis.resumenStats.totalConIva, isCost: true, formatFn: formatMoney },
+                { label: "Total Consumo en Quetzales", tooltip: "Total facturado en moneda local", baseVal: baseAgg.kpis.resumenStats.totalQuetzales, getCompVal: (c) => c.data.kpis.resumenStats.totalQuetzales, isCost: true, formatFn: (v) => 'Q ' + formatNumber(v) },
+                { label: "Ajuste Precio Energía (Mes Ant.)", tooltip: "Diferencia / Ajuste del mes anterior", baseVal: baseAgg.kpis.resumenStats.ajustePrecio, getCompVal: (c) => c.data.kpis.resumenStats.ajustePrecio, isCost: true, formatFn: formatMoney }
+            ];
+
+            let bTrSep = `<tr><td colspan="${1 + (showKW ? 3 : 0) + (showCost ? 1 : 0)}" style="background:#f1f5f9; font-size:0.8rem; color:#6b7280; text-transform:uppercase; font-weight:bold;">Métricas y Resumen Financiero</td></tr>`;
+            baseTbody += bTrSep;
+            
+            let compCols = compAggs.length === 0 ? (showKW ? 1 : 0) + (showCost ? 1 : 0) : compAggs.length * ((showKW ? 1 : 0) + (showCost ? 1 : 0));
+            if (compCols === 0) compCols = 1;
+            let cTrSep = `<tr><td colspan="${compCols}" style="background:#f1f5f9;"></td></tr>`;
+            compTbody += cTrSep;
+
+            kpiDefinitions.forEach(kpi => {
+                let bTr = `<tr><td style="background:#eff6ff;"><strong class="has-tooltip" data-tooltip="${kpi.tooltip}">${kpi.label}</strong></td>`;
+                if (showKW) {
+                    if (!kpi.isCost) bTr += `<td class="text-right" style="background:#eff6ff;">${kpi.formatFn(kpi.baseVal)}</td><td style="background:#eff6ff;">-</td><td style="background:#eff6ff;"></td>`;
+                    else bTr += `<td colspan="3" style="background:#eff6ff;"></td>`;
+                }
+                if (showCost) {
+                    if (kpi.isCost) bTr += `<td class="text-right" style="background:#eff6ff;"><strong>${kpi.formatFn(kpi.baseVal)}</strong></td>`;
+                    else bTr += `<td style="background:#eff6ff;"></td>`;
+                }
+                bTr += `</tr>`;
+                baseTbody += bTr;
+
+                let cTr = `<tr>`;
+                compAggs.forEach(cAgg => {
+                    let compVal = kpi.getCompVal(cAgg);
+                    if (showKW) {
+                        cTr += `<td class="text-right compare-col" style="background:#eff6ff;">`;
+                        if (!kpi.isCost) {
+                            let d = calculateDiff(kpi.baseVal, compVal);
+                            cTr += `<span style="font-size: 0.8rem; color:#6b7280; margin-right:6px;">(${kpi.formatFn(compVal)})</span>`;
+                            if (d.text) cTr += `<span class="diff ${d.class}">${d.text}</span>`;
+                        }
+                        cTr += `</td>`;
+                    }
+                    if (showCost) {
+                        cTr += `<td class="text-right compare-col" style="background:#eff6ff;">`;
+                        if (kpi.isCost) {
+                            let d = calculateDiff(kpi.baseVal, compVal);
+                            cTr += `<span style="font-size: 0.8rem; color:#6b7280; margin-right:6px;">(${kpi.formatFn(compVal)})</span>`;
+                            if (d.text) cTr += `<span class="diff ${d.class}">${d.text}</span>`;
+                        }
+                        cTr += `</td>`;
+                    }
+                });
+                cTr += `</tr>`;
+                compTbody += cTr;
+            });
+
+            baseTbody += `<tr><td colspan="${1 + (showKW ? 3 : 0) + (showCost ? 1 : 0)}" style="background:#f1f5f9; font-size:0.8rem; color:#6b7280; text-transform:uppercase; font-weight:bold;">Desglose Detallado de Cargos</td></tr>`;
+            compTbody += `<tr><td colspan="${compCols}" style="background:#f1f5f9;"></td></tr>`;
+        }
+
+        if (baseAgg.conceptos.length === 0) {
+            let baseCols = 1 + (showKW ? 3 : 0) + (showCost ? 1 : 0); 
+            baseTbody += `<tr><td colspan="${baseCols}" style="text-align:center;">No hay datos en periodo base.</td></tr>`;
+            let compCols = compAggs.length === 0 ? (showKW ? 1 : 0) + (showCost ? 1 : 0) : compAggs.length * ((showKW ? 1 : 0) + (showCost ? 1 : 0));
+            if (compCols === 0) compCols = 1;
+            compTbody += `<tr><td colspan="${compCols}" style="text-align:center;">-</td></tr>`;
+        } else {
+            baseAgg.conceptos.forEach(item => {
+                let expTooltip = getExplanation(item.concepto);
+                
+                let bTr = `<tr><td><strong class="has-tooltip" data-tooltip="${expTooltip}">${item.concepto}</strong></td>`;
+                if(showKW) {
+                    let txtPrecio = item.precioUnitario > 0 ? formatMoney(item.precioUnitario) : (item.costo > 0 && item.cantidad > 0 ? formatMoney(item.costo/item.cantidad) : '-');
+                    bTr += `<td class="text-right">${formatNumber(item.cantidad)}</td><td>${item.unidad}</td><td class="text-right" style="color:#6b7280; font-size:0.85rem;">${txtPrecio}</td>`;
+                }
+                if(showCost) bTr += `<td class="text-right">${formatMoney(item.costo)}</td>`;
+                bTr += `</tr>`;
+                baseTbody += bTr;
+
+                let cTr = `<tr>`;
+                if (compAggs.length === 0) {
+                     let pctUnidad = 0; let barClass = ''; let pctText = '-';
+                     if (item.unidad === 'KWH' && baseAgg.maxKWHBase > 0) { pctUnidad = ((item.cantidad / baseAgg.maxKWHBase) * 100); pctText = formatNumber(pctUnidad) + '%'; barClass = 'kwh'; }
+                     else if (item.unidad === 'KW' && baseAgg.maxKWBase > 0) { pctUnidad = ((item.cantidad / baseAgg.maxKWBase) * 100); pctText = formatNumber(pctUnidad) + '%'; barClass = 'kw'; }
+                     
+                     let pctCosto = 0; let pctCostoText = '-';
+                     if (baseAgg.totalCosto > 0) { pctCosto = ((item.costo / baseAgg.totalCosto) * 100); pctCostoText = formatNumber(pctCosto) + '%'; }
+
+                     if (showKW) cTr += `<td class="compare-col" style="min-width: 160px;"><div>${pctText}</div>${pctUnidad > 0 ? `<div class="bar-container"><div class="bar ${barClass}" style="width: ${pctUnidad > 100 ? 100 : pctUnidad}%"></div></div>` : ''}</td>`;
+                     if (showCost) cTr += `<td class="compare-col" style="min-width: 160px;"><div>${pctCostoText}</div>${pctCosto > 0 ? `<div class="bar-container"><div class="bar" style="width: ${pctCosto}%"></div></div>` : ''}</td>`;
+                } else {
+                     compAggs.forEach(cAgg => {
+                         let compItem = cAgg.data.conceptos.find(c => c.concepto === item.concepto && c.unidad === item.unidad);
+                         if(showKW) {
+                             cTr += `<td class="text-right compare-col">`;
+                             if(compItem) { let d = calculateDiff(item.cantidad, compItem.cantidad); cTr += `<span style="font-size: 0.8rem; color:#6b7280; margin-right:6px;">(${formatNumber(compItem.cantidad)})</span>`; if(d.text) cTr += `<span class="diff ${d.class}">${d.text}</span>`; } else { cTr += `-`; }
+                             cTr += `</td>`;
+                         }
+                         if(showCost) {
+                             cTr += `<td class="text-right compare-col">`;
+                             if(compItem) { let d = calculateDiff(item.costo, compItem.costo); cTr += `<span style="font-size: 0.8rem; color:#6b7280; margin-right:6px;">(${formatMoney(compItem.costo)})</span>`; if(d.text) cTr += `<span class="diff ${d.class}">${d.text}</span>`; } else { cTr += `-`; }
+                             cTr += `</td>`;
+                         }
+                     });
+                }
+                cTr += `</tr>`;
+                compTbody += cTr;
+            });
+        }
+        document.getElementById('baseTable').innerHTML = `<thead>${baseThead}</thead><tbody>${baseTbody}</tbody>`;
+        document.getElementById('compTable').innerHTML = `<thead>${compThead}</thead><tbody>${compTbody}</tbody>`;
+    }
+
+    // ==========================================
+    // CALCULADORA DE PRODUCCIÓN (LÓGICA)
+    // ==========================================
+    let datosMaquinas = [];
+    let chartCostosObj = null;
+    let chartEficienciaObj = null;
+
+    function cargarMaquinasDesdeLocalStorage() {
+        const dataStr = localStorage.getItem('maquinasConfig');
+        if (dataStr) {
+            try { 
+                let loaded = JSON.parse(dataStr);
+                // Migración para soportar Horas Prog y Prod y Tiempos Improductivos
+                datosMaquinas = loaded.map(m => {
+                    if (m.minLS === undefined) { m.minLS = 80; m.minDom = 110; }
+                    if (m.horas !== undefined && m.horasProd === undefined) {
+                        m.horasProd = m.horas;
+                        delete m.horas;
+                    }
+                    m.horasMes = m.horasMes || 720;
+                    m.horasProg = m.horasProg || 720;
+                    return m;
+                });
+            } catch (e) { datosMaquinas = []; }
+        }
+        if (!datosMaquinas || datosMaquinas.length === 0) {
+            datosMaquinas = [
+                { nombre: 'Maquina 01', kw: 250, minLS: 80, minDom: 110, horasMes: 720, horasProg: 600, horasProd: 550, m2: 1500000, meta: 3500 },
+                { nombre: 'Maquina 02', kw: 40, minLS: 80, minDom: 110, horasMes: 720, horasProg: 600, horasProd: 400, m2: 200000, meta: 600 },
+                { nombre: 'Maquina 03', kw: 60, minLS: 80, minDom: 110, horasMes: 720, horasProg: 600, horasProd: 450, m2: 180000, meta: 600 }
+            ];
+        }
+    }
+
+    function guardarMaquinasEnLocalStorage() {
+        localStorage.setItem('maquinasConfig', JSON.stringify(datosMaquinas));
+    }
+
+    function renderTablaIngreso() {
+        const tbody = document.getElementById('tabla_ingreso');
+        tbody.innerHTML = '';
+        datosMaquinas.forEach((maq, index) => {
+            const fila = document.createElement('tr');
+            fila.innerHTML = `
+                <td><input type="text" value="${maq.nombre}" oninput="actualizarDato(${index}, 'nombre', this.value)"></td>
+                <td><input type="number" step="0.00001" value="${maq.kw}" oninput="actualizarDato(${index}, 'kw', this.value)" style="width:75px;"></td>
+                <td><input type="number" step="1" value="${maq.minLS}" oninput="actualizarDato(${index}, 'minLS', this.value)" style="width:70px;"></td>
+                <td><input type="number" step="1" value="${maq.minDom}" oninput="actualizarDato(${index}, 'minDom', this.value)" style="width:70px;"></td>
+                <td><input type="text" class="input-readonly" readonly id="hm_${index}" value="${maq.horasMes}"></td>
+                <td><input type="text" class="input-readonly" readonly id="hp_${index}" value="${maq.horasProg ? formatNumber(maq.horasProg) : '0'}"></td>
+                <td><input type="number" step="0.00001" value="${maq.horasProd}" oninput="actualizarDato(${index}, 'horasProd', this.value)" style="width:80px;"></td>
+                <td><input type="number" step="0.00001" value="${maq.m2}" oninput="actualizarDato(${index}, 'm2', this.value)" style="width:100px;"></td>
+                <td><input type="number" step="0.00001" value="${maq.meta}" oninput="actualizarDato(${index}, 'meta', this.value)" style="width:80px;"></td>
+                <td><button class="btn-delete" onclick="borrarFila(${index})">Borrar</button></td>
+            `;
+            tbody.appendChild(fila);
+        });
+    }
+
+    function actualizarDato(index, campo, valor) {
+        if (campo === 'nombre') { datosMaquinas[index][campo] = valor; } 
+        else { datosMaquinas[index][campo] = parseFloat(valor) || 0; }
+        guardarMaquinasEnLocalStorage();
+        calcularTodo();
+    }
+
+    function agregarFila() {
+        datosMaquinas.push({ nombre: 'Nueva Máquina', kw: 50, minLS: 80, minDom: 110, horasMes: 720, horasProg: 600, horasProd: 500, m2: 50000, meta: 600 });
+        guardarMaquinasEnLocalStorage();
+        renderTablaIngreso();
+        calcularTodo();
+    }
+
+    function borrarFila(index) {
+        datosMaquinas.splice(index, 1);
+        guardarMaquinasEnLocalStorage();
+        renderTablaIngreso();
+        calcularTodo();
+    }
+
+    function calcularTodo() {
+        const facturaTotal = parseFloat(document.getElementById('input_factura').value) || 0;
+        const kwhTotal = parseFloat(document.getElementById('input_kwh').value) || 0;
+        const tarifaPromedio = kwhTotal > 0 ? (facturaTotal / kwhTotal) : 0;
+
+        let totalM2Producidos = 0;
+        let totalKwhTeoricoMaquinas = 0;
+
+        datosMaquinas.forEach((maq, index) => {
+            // Asignar nuevas horas del mes y programadas calculadas
+            maq.horasMes = currentDaysConfig.totalHours;
+            let minTotal = (currentDaysConfig.weekdays * maq.minLS) + (currentDaysConfig.sundays * maq.minDom);
+            maq.horasProg = maq.horasMes - (minTotal / 60);
+
+            // Actualizar visualmente los campos readonly sin redibujar toda la tabla
+            const elHm = document.getElementById('hm_' + index);
+            const elHp = document.getElementById('hp_' + index);
+            if (elHm) elHm.value = formatNumber(maq.horasMes);
+            if (elHp) elHp.value = formatNumber(maq.horasProg);
+
+            maq.kwhTeorico = maq.kw * maq.horasProd;
+            maq.velocidadReal = maq.horasProd > 0 ? (maq.m2 / maq.horasProd) : 0;
+            maq.porcentajeEficiencia = maq.meta > 0 ? (maq.velocidadReal / maq.meta) * 100 : 0;
+            
+            totalM2Producidos += maq.m2;
+            totalKwhTeoricoMaquinas += maq.kwhTeorico;
+        });
+
+        let kwhFantasma = kwhTotal - totalKwhTeoricoMaquinas;
+        if (kwhFantasma < 0) kwhFantasma = 0; 
+        let usdFantasma = kwhFantasma * tarifaPromedio;
+
+        const costoSoloProduccion = facturaTotal - usdFantasma;
+
+        datosMaquinas.forEach(maq => {
+            let participacion = totalKwhTeoricoMaquinas > 0 ? (maq.kwhTeorico / totalKwhTeoricoMaquinas) : 0;
+            maq.costoAsignado = participacion * costoSoloProduccion;
+            maq.costoPorM2 = maq.m2 > 0 ? (maq.costoAsignado / maq.m2) : 0;
+            maq.kwhPorM2 = maq.m2 > 0 ? (maq.kwhTeorico / maq.m2) : 0;
+        });
+
+        document.getElementById('kpi_kwh_util').innerText = formatNumber(totalKwhTeoricoMaquinas) + ' kWh';
+        document.getElementById('kpi_kwh_fantasma').innerText = formatNumber(kwhFantasma) + ' kWh';
+        document.getElementById('kpi_usd_fantasma').innerText = `Costo Aprox: ${formatMoney(usdFantasma)}`;
+        document.getElementById('kpi_prod_total').innerText = formatNumber(totalM2Producidos) + ' m²';
+
+        let kwhM2Global = totalM2Producidos > 0 ? (kwhTotal / totalM2Producidos) : 0;
+        document.getElementById('kpi_kwh_m2').innerText = formatNumber(kwhM2Global);
+
+        const tbodyRes = document.getElementById('tabla_resultados');
+        tbodyRes.innerHTML = '';
+        datosMaquinas.forEach(maq => {
+            let colorEff = maq.porcentajeEficiencia < 70 ? 'var(--danger)' : 'var(--success)';
+            const fila = document.createElement('tr');
+            fila.innerHTML = `
+                <td><strong>${maq.nombre}</strong></td>
+                <td>${formatNumber(maq.velocidadReal)} m²/h</td>
+                <td style="color: ${colorEff}; font-weight: bold;">${formatNumber(maq.porcentajeEficiencia)}%</td>
+                <td>${formatMoney(maq.costoAsignado)}</td>
+                <td style="font-weight: 600; color: var(--success);">${formatNumber(maq.kwhPorM2)}</td>
+                <td style="color: var(--primary); font-weight: bold; font-size: 1.1rem;">${formatMoney4(maq.costoPorM2)}</td>
+            `;
+            tbodyRes.appendChild(fila);
+        });
+
+        if (document.getElementById('tab-calc').classList.contains('active')) {
+            actualizarGraficos();
+        }
+    }
+
+    function actualizarGraficos() {
+        const nombres = datosMaquinas.map(m => m.nombre);
+        const costosPorM2 = datosMaquinas.map(m => m.costoPorM2);
+        const velReal = datosMaquinas.map(m => m.velocidadReal);
+
+        const el = document.getElementById('displayCurrency');
+        const symbol = (el && el.value === 'GTQ') ? 'Q' : '$';
+        
+        document.getElementById('tituloChartCostos').innerText = `Comparativa: Costo por m² (${symbol})`;
+        document.getElementById('tituloChartEficiencia').innerText = `Impacto: Velocidad vs Costo por m² (${symbol})`;
+
+        if (chartCostosObj) chartCostosObj.destroy();
+        const ctxCostos = document.getElementById('chartCostos').getContext('2d');
+        chartCostosObj = new Chart(ctxCostos, {
+            type: 'bar',
+            data: {
+                labels: nombres,
+                datasets: [{ label: `Costo ${symbol} por m²`, data: costosPorM2, backgroundColor: '#3b82f6', borderRadius: 4 }]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+
+        if (chartEficienciaObj) chartEficienciaObj.destroy();
+        const ctxEff = document.getElementById('chartEficiencia').getContext('2d');
+        chartEficienciaObj = new Chart(ctxEff, {
+            type: 'bar',
+            data: {
+                labels: nombres,
+                datasets: [
+                    { label: `Costo por m² (${symbol})`, data: costosPorM2, type: 'line', borderColor: '#dc2626', backgroundColor: '#dc2626', borderWidth: 3, pointRadius: 5, yAxisID: 'y1', order: 1 },
+                    { label: 'Velocidad Real (m²/h)', data: velReal, backgroundColor: '#059669', yAxisID: 'y', order: 2, borderRadius: 4 }
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                scales: {
+                    y: { type: 'linear', display: true, position: 'left', title: { display: true, text: 'Velocidad (m²/h)', color: '#059669' }, grid: { color: 'rgba(0,0,0,0.05)' } },
+                    y1: { type: 'linear', display: true, position: 'right', title: { display: true, text: `Costo (${symbol}/m²)`, color: '#dc2626' }, grid: { drawOnChartArea: false } }
+                }
+            }
+        });
+    }
+
+    // ==========================================
+    // PWA OFFLINE E INICIO
+    // ==========================================
+    if ('serviceWorker' in navigator && window.location.protocol === 'https:') {
+        const swCode = `
+            const CACHE_NAME = 'factura-pwa-v11';
+            self.addEventListener('install', event => { event.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(['/']))); });
+            self.addEventListener('fetch', event => { event.respondWith(caches.match(event.request).then(r => r || fetch(event.request))); });
+        `;
+        const blob = new Blob([swCode], { type: 'application/javascript' });
+        const swUrl = URL.createObjectURL(blob);
+        navigator.serviceWorker.register(swUrl).catch(err => console.log('SW Reg Failed', err));
+    }
+
+    window.onload = async () => {
+        cargarMaquinasDesdeLocalStorage(); 
+        renderTablaIngreso(); 
+        await initDB();
+        await loadDataAndRefresh(); 
+    };
+</script>
+</body>
+</html>
