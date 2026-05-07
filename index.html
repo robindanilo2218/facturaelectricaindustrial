@@ -213,7 +213,7 @@
         .detail-item-box.history { background: #faf5ff; border: 1px solid #e9d5ff; }
         .detail-item-box.history label { color: #7e22ce; border-bottom-color: #e9d5ff; }
 
-        .toggle-icon { display: inline-block; width: 20px; text-align: center; font-weight: bold; color: var(--primary); transition: transform 0.2s; margin-right: 8px; }
+        .toggle-icon { display: inline-block; width: 20px; text-align: center; font-weight: bold; color: var(--primary); transition: transform 0.2s; margin-right: 4px; flex-shrink: 0; }
         .row-header.open .toggle-icon { transform: rotate(90deg); }
 
         /* Tooltips */
@@ -1305,7 +1305,7 @@
 
         // --- Construcción del Encabezado ---
         tableHtml += `<thead><tr>`;
-        tableHtml += `<th class="sticky-col" style="min-width: 280px;">Concepto (Clic para detalle)</th>`;
+        tableHtml += `<th class="sticky-col" style="white-space: nowrap;">Concepto <span style="font-size:0.75rem; font-weight:normal; color:var(--text-muted);">(Clic detalle)</span></th>`;
         tableHtml += `<th class="text-right">Cantidad</th>`;
         tableHtml += `<th>Unidad</th>`;
         tableHtml += `<th class="text-right">Precio Unit.</th>`;
@@ -1340,7 +1340,7 @@
                 
                 // FILA PRINCIPAL (CLICKABLE)
                 tableHtml += `<tr id="${rowId}" class="row-header" onclick="toggleDetail('${rowId}')">`;
-                tableHtml += `<td class="sticky-col"><span class="toggle-icon">&#9658;</span><strong class="has-tooltip" data-tooltip="${expTooltip}">${item.concepto}</strong></td>`;
+                tableHtml += `<td class="sticky-col"><div style="display:flex; align-items:center;"><span class="toggle-icon">&#9658;</span><strong class="has-tooltip" data-tooltip="${expTooltip}">${item.concepto}</strong></div></td>`;
                 tableHtml += `<td class="text-right">${item.cantidad > 0 ? formatNumber(item.cantidad) : '-'}</td>`;
                 tableHtml += `<td>${item.unidad}</td>`;
                 tableHtml += `<td class="text-right" style="color:#6b7280;">${txtPrecio}</td>`;
@@ -1494,7 +1494,7 @@
             let totalRowId = 'row-total';
             tableHtml += `
             <tr id="${totalRowId}" class="row-header" onclick="toggleDetail('${totalRowId}')" style="background-color: #f1f5f9; border-top: 2px solid #d1d5db;">
-                <td class="sticky-col" style="background-color: #f1f5f9; text-transform: uppercase; font-weight: bold; font-size: 1rem;"><span class="toggle-icon">&#9658;</span> TOTAL FACTURADO (RESUMEN GLOBAL)</td>
+                <td class="sticky-col" style="background-color: #f1f5f9; text-transform: uppercase; font-weight: bold; font-size: 0.95rem;"><div style="display:flex; align-items:center;"><span class="toggle-icon">&#9658;</span> <span>TOTAL FACTURADO</span></div></td>
                 <td class="text-right">-</td>
                 <td>-</td>
                 <td class="text-right">-</td>
