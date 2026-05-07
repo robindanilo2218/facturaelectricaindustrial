@@ -538,19 +538,23 @@
         const el = document.getElementById('displayCurrency');
         const symbol = (el && el.value === 'GTQ') ? 'Q ' : '$ ';
         const isInt = Math.abs(num % 1) < 0.000001;
-        return symbol + num.toLocaleString('es-GT', { minimumFractionDigits: isInt ? 0 : 2, maximumFractionDigits: 5 }); 
+        const maxDecimals = Math.abs(num) > 20 ? 2 : 5;
+        return symbol + num.toLocaleString('es-GT', { minimumFractionDigits: isInt ? 0 : 2, maximumFractionDigits: maxDecimals }); 
     }
 
     function formatMoney4(num) { 
         const el = document.getElementById('displayCurrency');
         const symbol = (el && el.value === 'GTQ') ? 'Q ' : '$ ';
         const isInt = Math.abs(num % 1) < 0.000001;
-        return symbol + num.toLocaleString('es-GT', { minimumFractionDigits: isInt ? 0 : 4, maximumFractionDigits: 5 }); 
+        const maxDecimals = Math.abs(num) > 20 ? 2 : 5;
+        const minDecimals = isInt ? 0 : (Math.abs(num) > 20 ? 2 : 4);
+        return symbol + num.toLocaleString('es-GT', { minimumFractionDigits: minDecimals, maximumFractionDigits: maxDecimals }); 
     }
 
     function formatNumber(num) { 
         const isInt = Math.abs(num % 1) < 0.000001;
-        return num.toLocaleString('es-GT', { minimumFractionDigits: isInt ? 0 : 2, maximumFractionDigits: 5 }); 
+        const maxDecimals = Math.abs(num) > 20 ? 2 : 5;
+        return num.toLocaleString('es-GT', { minimumFractionDigits: isInt ? 0 : 2, maximumFractionDigits: maxDecimals }); 
     }
 
     function parseNumber(str) {
