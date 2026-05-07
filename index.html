@@ -323,7 +323,7 @@
 
         <!-- TABLA UNIFICADA CON ACORDEONES -->
         <h3 style="margin-bottom: 12px; font-size: 1.1rem; color: #1f2937;">Detalle Expandible de Conceptos</h3>
-        <p style="font-size: 0.85rem; color: #6b7280; margin-bottom: 16px;">Haz clic en cualquier fila para expandirla y ver todos los detalles: <strong>Desgloses sin/con IVA, Dólares/Quetzales, Rendimiento Físico por m² y Registros Globales del Mes.</strong></p>
+        <p style="font-size: 0.85rem; color: #6b7280; margin-bottom: 16px;">Haz clic en cualquier fila para expandirla y ver todos los detalles: <strong>Desgloses (Sin IVA), Equivalentes de Moneda, Rendimiento Físico por m² y Registros del Mes.</strong></p>
         <div class="tables-wrapper">
             <table id="mainAnalysisTable">
                 <!-- Se inyecta con JS -->
@@ -342,11 +342,11 @@
                 <span id="lbl_calc_period" style="background:var(--primary); color:white; padding:4px 10px; border-radius:12px; font-size:0.85rem; font-weight:bold;">Mes Base</span>
             </div>
             <p style="color: var(--text-muted); margin-bottom: 15px; font-size: 0.9rem;">
-                Estos valores se extraen automáticamente del <strong>Periodo Base</strong> y la <strong>Moneda</strong> que tengas seleccionados en la pestaña de Análisis.
+                Estos valores se extraen automáticamente del <strong>Periodo Base</strong> y la <strong>Moneda</strong> que tengas seleccionados en la pestaña de Análisis, y reflejan estrictamente el <strong>Costo Sin IVA</strong>.
             </p>
             <div class="factura-inputs">
                 <div class="input-group">
-                    <label>Costo Total Factura</label>
+                    <label>Costo Total Factura (Base Sin IVA para prorrateo)</label>
                     <input type="text" id="input_factura_display" class="input-readonly" readonly value="$0.00">
                     <input type="hidden" id="input_factura" value="0">
                 </div>
@@ -427,9 +427,9 @@
                             <th>Máquina</th>
                             <th>Velocidad Real</th>
                             <th>Eficiencia</th>
-                            <th>Costo Prorrateado</th>
+                            <th>Costo Prorrateado <br><small>(Sin IVA)</small></th>
                             <th style="color: var(--success);">kWh / m²</th>
-                            <th style="color: var(--primary);">Costo por m²</th>
+                            <th style="color: var(--primary);">Costo por m² <br><small>(Sin IVA)</small></th>
                         </tr>
                     </thead>
                     <tbody id="tabla_resultados">
@@ -441,7 +441,7 @@
         <!-- Gráficos -->
         <div class="charts-container">
             <div class="panel">
-                <h3 id="tituloChartCostos" style="margin-bottom: 15px; text-align: center; font-size:1rem;">Comparativa: Costo por m²</h3>
+                <h3 id="tituloChartCostos" style="margin-bottom: 15px; text-align: center; font-size:1rem;">Comparativa: Costo por m² (Sin IVA)</h3>
                 <div class="chart-box"><canvas id="chartCostos"></canvas></div>
             </div>
             <div class="panel">
@@ -927,6 +927,7 @@
     // ==========================================
     function aggregateData(facturas, targetMonthYear, displayCurrency, userTC) {
         let totalCosto = 0;
+        let totalCostoSinIva = 0;
         const conceptosMap = new Map();
 
         let kpis = {
@@ -935,6 +936,7 @@
             combustibleTotal: 0,
             fpValor: 0,
             costoTotal: 0,
+            costoTotalSinIva: 0,
             tipoCambio: userTC,
             costoPorKWh: 0,
             resumenStats: { totalSinIva: 0, totalConIva: 0, totalQuetzales: 0, precioCobrada: 0, precioReal: 0, ajustePrecio: 0, potenciaMaxima: 0, potenciaPico: 0, demandaFirme: 0 }
@@ -996,6 +998,10 @@
                 }
 
                 totalCosto += itemCosto;
+                
+                if (item.concepto !== 'IVA') {
+                    totalCostoSinIva += itemCosto;
+                }
 
                 const upperConcept = item.concepto.toUpperCase();
 
@@ -1037,8 +1043,11 @@
         kpis.potenciaContratada = sumPotencia;
         kpis.fpValor = fpCount > 0 ? (fpSum / fpCount) : 0;
         kpis.costoTotal = totalCosto;
+        kpis.costoTotalSinIva = totalCostoSinIva;
         kpis.tipoCambio = tcCount > 0 ? (tcSum / tcCount) : userTC;
-        kpis.costoPorKWh = kpis.energiaTotal > 0 ? (kpis.costoTotal / kpis.energiaTotal) : 0;
+        
+        let baseSinIva = kpis.resumenStats.totalSinIva > 0 ? kpis.resumenStats.totalSinIva : kpis.costoTotalSinIva;
+        kpis.costoPorKWh = kpis.energiaTotal > 0 ? (baseSinIva / kpis.energiaTotal) : 0;
 
         let maxKWHBase = 0;
         let maxKWBase = 0;
@@ -1294,8 +1303,8 @@
         const baseAgg = aggregateData(allFacturasData, currentPeriod, displayCurrency, manualTC);
         const ytdAgg = aggregateData(allFacturasData.filter(f => f.monthYear !== "Desconocido" && f.monthYear.startsWith(targetYear)), "ALL", displayCurrency, manualTC);
 
-        document.getElementById('input_factura').value = baseAgg.kpis.costoTotal;
-        document.getElementById('input_factura_display').value = formatMoney(baseAgg.kpis.costoTotal);
+        document.getElementById('input_factura').value = baseAgg.kpis.costoTotalSinIva;
+        document.getElementById('input_factura_display').value = formatMoney(baseAgg.kpis.costoTotalSinIva);
         document.getElementById('input_kwh').value = baseAgg.kpis.energiaTotal;
         document.getElementById('input_kwh_display').value = formatNumber(baseAgg.kpis.energiaTotal);
         document.getElementById('lbl_calc_period').innerText = isAll ? `Acumulado Histórico (${targetYear})` : formatMonthYearLabel(currentPeriod);
@@ -1312,15 +1321,15 @@
         tableHtml += `<th class="sticky-col" style="white-space: nowrap;">Concepto <span style="font-size:0.75rem; font-weight:normal; color:var(--text-muted);">(Clic detalle)</span></th>`;
         tableHtml += `<th class="text-right">Cantidad</th>`;
         tableHtml += `<th>Unidad</th>`;
-        tableHtml += `<th class="text-right">Precio Unit.</th>`;
-        tableHtml += `<th class="text-right">Costo Total</th>`;
+        tableHtml += `<th class="text-right">Precio Unit.<br><span style="font-size:0.75rem; font-weight:normal; color:var(--text-muted);">(Sin IVA)</span></th>`;
+        tableHtml += `<th class="text-right">Costo Total<br><span style="font-size:0.75rem; font-weight:normal; color:var(--text-muted);">(Sin IVA)</span></th>`;
 
         // Columnas de Comparación
         if (compAggs.length === 0) {
             tableHtml += `<th class="compare-col" style="min-width:180px;">% de Impacto Costo</th>`;
         } else {
             compAggs.forEach(c => {
-                tableHtml += `<th class="text-right compare-col" style="min-width: 150px;">Vs. ${formatMonthYearLabel(c.period)}<br><span style="font-size:0.75rem; font-weight:normal;">(Costo y P.Unit)</span></th>`;
+                tableHtml += `<th class="text-right compare-col" style="min-width: 150px;">Vs. ${formatMonthYearLabel(c.period)}<br><span style="font-size:0.75rem; font-weight:normal; color:var(--text-muted);">(Costo Sin IVA y P.U.)</span></th>`;
             });
         }
         tableHtml += `</tr></thead>`;
@@ -1352,7 +1361,7 @@
 
                 if (compAggs.length === 0) {
                     let pctCosto = 0; let pctCostoText = '-';
-                    if (baseAgg.totalCosto > 0) { pctCosto = ((item.costo / baseAgg.totalCosto) * 100); pctCostoText = formatNumber(pctCosto) + '%'; }
+                    if (baseAgg.costoTotalSinIva > 0) { pctCosto = ((item.costo / baseAgg.costoTotalSinIva) * 100); pctCostoText = formatNumber(pctCosto) + '%'; }
                     tableHtml += `<td class="compare-col"><div>${pctCostoText}</div>${pctCosto > 0 ? `<div class="bar-container"><div class="bar" style="width: ${pctCosto}%"></div></div>` : ''}</td>`;
                 } else {
                     compAggs.forEach(cAgg => {
@@ -1432,7 +1441,7 @@
                                 <strong style="color:#111;">${formatNumber(baseAgg.kpis.energiaTotal)} kWh</strong>
                             </div>
                             <div class="detail-row">
-                                <span>Costo Real Promedio por kWh:</span>
+                                <span>Costo Real Promedio por kWh (Sin IVA):</span>
                                 <strong style="color:#111;">${formatMoney4(baseAgg.kpis.costoPorKWh)}</strong>
                             </div>
                             <div class="detail-row dashed dashed-energy">
@@ -1482,7 +1491,7 @@
                             </div>
                             
                             <div class="detail-row">
-                                <span>Costo Monetario por cada m²:</span>
+                                <span>Costo Monetario por cada m² (Sin IVA):</span>
                                 <span class="highlight">${item.costo > 0 ? formatMoney4(valCostoM2) + ' / m²' : 'N/A'}</span>
                             </div>
                         </div>
@@ -1498,7 +1507,7 @@
             let totalRowId = 'row-total';
             tableHtml += `
             <tr id="${totalRowId}" class="row-header" onclick="toggleDetail('${totalRowId}')" style="background-color: #f1f5f9; border-top: 2px solid #d1d5db;">
-                <td class="sticky-col" style="background-color: #f1f5f9; text-transform: uppercase; font-weight: bold; font-size: 0.95rem;"><div style="display:flex; align-items:center;"><span class="toggle-icon">&#9658;</span> <span>TOTAL FACTURADO</span></div></td>
+                <td class="sticky-col" style="background-color: #f1f5f9; text-transform: uppercase; font-weight: bold; font-size: 0.95rem;"><div style="display:flex; align-items:center;"><span class="toggle-icon">&#9658;</span> <span>TOTAL FACTURADO (CON IVA)</span></div></td>
                 <td class="text-right">-</td>
                 <td>-</td>
                 <td class="text-right">-</td>
