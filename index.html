@@ -191,6 +191,15 @@
         .detail-item span { font-size: 1.05rem; color: #111; font-weight: 500; }
         .detail-item span.highlight { color: var(--primary); font-weight: bold; }
         
+        /* Clases para evitar el desbordamiento de texto (overflow) en detalles */
+        .detail-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px; flex-wrap: wrap; gap: 8px; word-break: break-word; }
+        .detail-row > span { flex: 1 1 120px; font-size: 0.9rem !important; color: #4b5563 !important; font-weight: normal !important; }
+        .detail-row > strong, .detail-row > .highlight { text-align: right; flex: 0 1 auto; }
+        .detail-row.dashed { margin-top: 8px; border-top: 1px dashed #e5e7eb; padding-top: 4px; }
+        .detail-row.dashed-energy { border-top-color: #bfdbfe; }
+        .detail-row.dashed-warning { border-top-color: #fde68a; }
+        .detail-row.dashed-summary { border-top-color: #e2e8f0; }
+
         /* Estilos de sub-tarjetas para datos extraídos (potencia, energía, etc) */
         .detail-item-box { padding: 12px; border-radius: 6px; }
         .detail-item-box.energy { background: #eff6ff; border: 1px solid #bfdbfe; }
@@ -290,8 +299,8 @@
             </div>
             
             <div class="nav-group">
-                <span class="has-tooltip" data-tooltip="Modifica esto para ver los cálculos de Rendimiento Físico exactos por m² en la tabla. Puedes poner la producción de una sola máquina o el de la planta completa." style="font-size: 0.9rem; font-weight: 600;">Prod. del mes (m²):</span>
-                <input type="number" id="manualM2" value="0" step="0.01" style="width: 120px; padding: 4px 8px; border:1px solid var(--primary); border-radius:4px; font-weight:bold; color:var(--primary);" oninput="updateDashboardView()">
+                <span class="has-tooltip" data-tooltip="Modifica esto para ver los cálculos de Rendimiento Físico exactos por m² en la tabla. El valor se guarda automáticamente para cada mes." style="font-size: 0.9rem; font-weight: 600;">Prod. del mes (m²):</span>
+                <input type="number" id="manualM2" value="0" step="0.01" style="width: 120px; padding: 4px 8px; border:1px solid var(--primary); border-radius:4px; font-weight:bold; color:var(--primary);" oninput="onManualM2Input()">
             </div>
 
             <div class="view-modes">
@@ -1146,6 +1155,48 @@
         }
     }
 
+    // ==========================================
+    // MANEJO DE METROS CUADRADOS INDEPENDIENTE POR MES
+    // ==========================================
+    function updateM2InputForPeriod() {
+        const currentPeriod = document.getElementById('periodSelect').value;
+        const isAll = currentPeriod === 'ALL';
+        const m2Input = document.getElementById('manualM2');
+        
+        if (isAll) {
+            const targetYear = availablePeriods.length > 0 ? availablePeriods[0].split('-')[0] : new Date().getFullYear().toString();
+            const yearFacturas = allFacturasData.filter(f => f.monthYear !== "Desconocido" && f.monthYear.startsWith(targetYear));
+            let sumM2 = yearFacturas.reduce((acc, f) => acc + (parseFloat(f.m2) || 0), 0);
+            m2Input.value = sumM2;
+            m2Input.disabled = true;
+            m2Input.title = "Suma del año (No editable en vista 'Todo el Historial')";
+        } else {
+            const baseFactura = allFacturasData.find(f => f.monthYear === currentPeriod);
+            if (baseFactura && baseFactura.m2 !== undefined) {
+                m2Input.value = baseFactura.m2;
+            } else {
+                m2Input.value = 0;
+            }
+            m2Input.disabled = false;
+            m2Input.title = "Producción del mes (Editable y se guarda de forma independiente)";
+        }
+    }
+
+    async function onManualM2Input() {
+        const currentPeriod = document.getElementById('periodSelect').value;
+        if (currentPeriod === 'ALL') return; 
+
+        let m2Value = parseFloat(document.getElementById('manualM2').value) || 0;
+        const baseFactura = allFacturasData.find(f => f.monthYear === currentPeriod);
+        
+        if (baseFactura) {
+            baseFactura.m2 = m2Value;
+            saveFactura(baseFactura); // Guarda en base de datos sin bloquear
+        }
+        
+        updateDashboardView(); // Recalcula la tabla
+    }
+
     async function loadDataAndRefresh(forceSelectMonth = null) {
         allFacturasData = await getAllFacturas();
         allFacturasData.forEach(f => { if(!f.monthYear) f.monthYear = getMonthYearFromText(f.id) || "Desconocido"; });
@@ -1174,10 +1225,7 @@
             }
         }
 
-        // Cargar total m2 incial
-        let baseM2 = datosMaquinas.reduce((acc, m) => acc + (parseFloat(m.m2) || 0), 0);
-        document.getElementById('manualM2').value = baseM2;
-
+        updateM2InputForPeriod(); // Carga el valor M2 guardado
         renderMatrix();
         updateDashboardView();
     }
@@ -1190,6 +1238,7 @@
                 document.getElementById('manualTC').value = formatNumber(baseFactura.tipoCambio);
             }
         }
+        updateM2InputForPeriod(); // Carga el valor M2 al cambiar
         updateDashboardView(); 
     }
 
@@ -1267,7 +1316,7 @@
             tableHtml += `<th class="compare-col" style="min-width:180px;">% de Impacto Costo</th>`;
         } else {
             compAggs.forEach(c => {
-                tableHtml += `<th class="text-right compare-col">Vs. ${formatMonthYearLabel(c.period)} (Costo)</th>`;
+                tableHtml += `<th class="text-right compare-col" style="min-width: 150px;">Vs. ${formatMonthYearLabel(c.period)}<br><span style="font-size:0.75rem; font-weight:normal;">(Costo y P.Unit)</span></th>`;
             });
         }
         tableHtml += `</tr></thead>`;
@@ -1307,8 +1356,15 @@
                         tableHtml += `<td class="text-right compare-col">`;
                         if(compItem) { 
                             let d = calculateDiff(item.costo, compItem.costo); 
-                            tableHtml += `<span style="font-size: 0.8rem; color:#6b7280; margin-right:6px;">(${formatMoney(compItem.costo)})</span>`; 
-                            if(d.text) tableHtml += `<span class="diff ${d.class}">${d.text}</span>`; 
+                            let compPU = compItem.precioUnitario > 0 ? formatMoney(compItem.precioUnitario) : (compItem.costo > 0 && compItem.cantidad > 0 ? formatMoney(compItem.costo/compItem.cantidad) : null);
+                            
+                            tableHtml += `<div style="display:flex; flex-direction:column; align-items:flex-end; gap:4px;">`;
+                            let textDetails = `Costo: ${formatMoney(compItem.costo)}`;
+                            if(compPU) textDetails += `<br>P.U.: ${compPU}`;
+                            
+                            tableHtml += `<span style="font-size: 0.75rem; color:#6b7280; text-align:right; line-height:1.2;">${textDetails}</span>`;
+                            if(d.text) tableHtml += `<span class="diff ${d.class}" style="align-self: flex-end;">${d.text}</span>`;
+                            tableHtml += `</div>`;
                         } else { 
                             tableHtml += `-`; 
                         }
@@ -1334,16 +1390,16 @@
                     extraCardHtml = `
                         <div class="detail-item detail-item-box energy">
                             <label>Métricas de Energía (Mes / Año)</label>
-                            <div style="display:flex; justify-content:space-between; margin-bottom:2px;">
-                                <span style="font-size:0.9rem; color:#4b5563;">Energía Total Facturada:</span>
+                            <div class="detail-row">
+                                <span>Energía Total Facturada:</span>
                                 <strong style="color:#111;">${formatNumber(baseAgg.kpis.energiaTotal)} kWh</strong>
                             </div>
-                            <div style="display:flex; justify-content:space-between; margin-bottom:2px;">
-                                <span style="font-size:0.9rem; color:#4b5563;">Costo Real Promedio por kWh:</span>
+                            <div class="detail-row">
+                                <span>Costo Real Promedio por kWh:</span>
                                 <strong style="color:#111;">${formatMoney4(baseAgg.kpis.costoPorKWh)}</strong>
                             </div>
-                            <div style="display:flex; justify-content:space-between; margin-bottom:2px; margin-top:8px; border-top:1px dashed #bfdbfe; padding-top:4px;">
-                                <span style="font-size:0.9rem; color:#4b5563;">Energía Acumulada YTD (Año):</span>
+                            <div class="detail-row dashed dashed-energy">
+                                <span>Energía Acumulada YTD (Año):</span>
                                 <strong style="color:#111;">${formatNumber(ytdAgg.kpis.energiaTotal)} kWh</strong>
                             </div>
                         </div>
@@ -1353,16 +1409,16 @@
                     extraCardHtml = `
                         <div class="detail-item detail-item-box power">
                             <label>Registros Técnicos de Potencia</label>
-                            <div style="display:flex; justify-content:space-between; margin-bottom:2px;">
-                                <span style="font-size:0.9rem; color:#4b5563;">Potencia Máxima Registrada:</span>
+                            <div class="detail-row">
+                                <span>Potencia Máxima Registrada:</span>
                                 <strong style="color:#111;">${formatNumber(baseAgg.kpis.resumenStats.potenciaMaxima)} kW</strong>
                             </div>
-                            <div style="display:flex; justify-content:space-between; margin-bottom:2px;">
-                                <span style="font-size:0.9rem; color:#4b5563;">Potencia en Pico (18h - 22h):</span>
+                            <div class="detail-row">
+                                <span>Potencia en Pico (18h - 22h):</span>
                                 <strong style="color:#111;">${formatNumber(baseAgg.kpis.resumenStats.potenciaPico)} kW</strong>
                             </div>
-                            <div style="display:flex; justify-content:space-between; margin-bottom:2px;">
-                                <span style="font-size:0.9rem; color:#4b5563;">Demanda Firme / Contratada:</span>
+                            <div class="detail-row">
+                                <span>Demanda Firme / Contratada:</span>
                                 <strong style="color:#111;">${formatNumber(baseAgg.kpis.resumenStats.demandaFirme || baseAgg.kpis.potenciaContratada)} kW</strong>
                             </div>
                         </div>
@@ -1376,35 +1432,35 @@
                     <div class="detail-card">
                         <div class="detail-item">
                             <label>Desglose Financiero del Concepto</label>
-                            <div style="display:flex; justify-content:space-between; margin-bottom:2px;">
-                                <span style="font-size:0.9rem; color:#4b5563;">Precio Puramente del Cargo (Sin IVA):</span>
+                            <div class="detail-row">
+                                <span>Precio Puramente del Cargo (Sin IVA):</span>
                                 <strong style="color:#111;">${formatMoney(item.costo)}</strong>
                             </div>
-                            <div style="display:flex; justify-content:space-between; margin-bottom:2px;">
-                                <span style="font-size:0.9rem; color:#4b5563;">Precio Estimado Con IVA (12%):</span>
+                            <div class="detail-row">
+                                <span>Precio Estimado Con IVA (12%):</span>
                                 <strong style="color:#111;">${formatMoney(item.costo * 1.12)}</strong>
                             </div>
-                            <div style="display:flex; justify-content:space-between; margin-bottom:2px; margin-top:8px; border-top:1px dashed #e5e7eb; padding-top:4px;">
-                                <span style="font-size:0.9rem; color:#4b5563;">Costo Equivalente en Quetzales (Q):</span>
+                            <div class="detail-row dashed">
+                                <span>Costo Equivalente en Quetzales (Q):</span>
                                 <strong style="color:#111;">Q ${formatNumber(valGTQ)}</strong>
                             </div>
-                            <div style="display:flex; justify-content:space-between; margin-bottom:2px;">
-                                <span style="font-size:0.9rem; color:#4b5563;">Costo Equivalente en Dólares ($):</span>
+                            <div class="detail-row">
+                                <span>Costo Equivalente en Dólares ($):</span>
                                 <strong style="color:#111;">$ ${formatNumber(valUSD)}</strong>
                             </div>
                         </div>
 
                         <div class="detail-item">
                             <label>Rendimiento Físico (En base a ${formatNumber(m2Totales)} m²)</label>
-                            <span style="font-size:0.85rem; color:#6b7280; font-weight:normal; margin-bottom:4px;">Puede representar una máquina o todas, según ingreses arriba.</span>
+                            <span style="font-size:0.85rem; color:#6b7280; font-weight:normal; margin-bottom:4px;">Los datos de m² se guardan independientemente para cada mes.</span>
                             
-                            <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
-                                <span style="font-size:0.9rem; color:#4b5563;">Unidades (kW/kWh) consumidas por m²:</span>
+                            <div class="detail-row">
+                                <span>Unidades (kW/kWh) consumidas por m²:</span>
                                 <span class="highlight">${item.cantidad > 0 ? formatNumber(valUndM2) + ' ' + item.unidad + '/m²' : 'N/A'}</span>
                             </div>
                             
-                            <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
-                                <span style="font-size:0.9rem; color:#4b5563;">Costo Monetario por cada m²:</span>
+                            <div class="detail-row">
+                                <span>Costo Monetario por cada m²:</span>
                                 <span class="highlight">${item.costo > 0 ? formatMoney4(valCostoM2) + ' / m²' : 'N/A'}</span>
                             </div>
                         </div>
@@ -1433,16 +1489,16 @@
                 ajusteHtml = `
                     <div class="detail-item detail-item-box warning">
                         <label>Ajustes del Mes Anterior</label>
-                        <div style="display:flex; justify-content:space-between; margin-bottom:2px;">
-                            <span style="font-size:0.9rem; color:#4b5563;">Precio de Energía Cobrada:</span>
+                        <div class="detail-row">
+                            <span>Precio de Energía Cobrada:</span>
                             <strong style="color:#111;">${formatMoney(baseAgg.kpis.resumenStats.precioCobrada)}</strong>
                         </div>
-                        <div style="display:flex; justify-content:space-between; margin-bottom:2px;">
-                            <span style="font-size:0.9rem; color:#4b5563;">Precio de Energía Real:</span>
+                        <div class="detail-row">
+                            <span>Precio de Energía Real:</span>
                             <strong style="color:#111;">${formatMoney(baseAgg.kpis.resumenStats.precioReal)}</strong>
                         </div>
-                        <div style="display:flex; justify-content:space-between; margin-bottom:2px; margin-top:8px; border-top:1px dashed #fde68a; padding-top:4px;">
-                            <span style="font-size:0.9rem; color:#4b5563;">Diferencia (Ajuste):</span>
+                        <div class="detail-row dashed dashed-warning">
+                            <span>Diferencia (Ajuste):</span>
                             <strong style="color:${baseAgg.kpis.resumenStats.ajustePrecio > 0 ? 'var(--danger)' : 'var(--good)'};">${formatMoney(baseAgg.kpis.resumenStats.ajustePrecio)}</strong>
                         </div>
                     </div>
@@ -1456,36 +1512,36 @@
                         
                         <div class="detail-item detail-item-box summary">
                             <label>Resumen Oficial de Factura</label>
-                            <div style="display:flex; justify-content:space-between; margin-bottom:2px;">
-                                <span style="font-size:0.9rem; color:#4b5563;">Total Consumo Sin IVA:</span>
+                            <div class="detail-row">
+                                <span>Total Consumo Sin IVA:</span>
                                 <strong style="color:#111;">${formatMoney(baseAgg.kpis.resumenStats.totalSinIva)}</strong>
                             </div>
-                            <div style="display:flex; justify-content:space-between; margin-bottom:2px;">
-                                <span style="font-size:0.9rem; color:#4b5563;">Total Consumo Con IVA:</span>
+                            <div class="detail-row">
+                                <span>Total Consumo Con IVA:</span>
                                 <strong style="color:#111;">${formatMoney(baseAgg.kpis.resumenStats.totalConIva)}</strong>
                             </div>
-                            <div style="display:flex; justify-content:space-between; margin-bottom:2px;">
-                                <span style="font-size:0.9rem; color:#4b5563;">Total en Quetzales:</span>
+                            <div class="detail-row">
+                                <span>Total en Quetzales:</span>
                                 <strong style="color:#111;">Q ${formatNumber(baseAgg.kpis.resumenStats.totalQuetzales)}</strong>
                             </div>
-                            <div style="display:flex; justify-content:space-between; margin-bottom:2px; margin-top:8px; border-top:1px dashed #e2e8f0; padding-top:4px;">
-                                <span style="font-size:0.9rem; color:#4b5563;">Tipo de Cambio Aplicado:</span>
+                            <div class="detail-row dashed dashed-summary">
+                                <span>Tipo de Cambio Aplicado:</span>
                                 <strong style="color:#111;">Q ${formatNumber(baseAgg.kpis.tipoCambio)} x $1</strong>
                             </div>
                         </div>
 
                         <div class="detail-item detail-item-box history">
                             <label>Acumulados Históricos (Año ${targetYear})</label>
-                            <div style="display:flex; justify-content:space-between; margin-bottom:2px;">
-                                <span style="font-size:0.9rem; color:#4b5563;">Costo Total Acumulado YTD:</span>
+                            <div class="detail-row">
+                                <span>Costo Total Acumulado YTD:</span>
                                 <strong style="color:#111;">${formatMoney(ytdAgg.kpis.costoTotal)}</strong>
                             </div>
-                            <div style="display:flex; justify-content:space-between; margin-bottom:2px;">
-                                <span style="font-size:0.9rem; color:#4b5563;">Cargos Combustible YTD:</span>
+                            <div class="detail-row">
+                                <span>Cargos Combustible YTD:</span>
                                 <strong style="color:#111;">${formatMoney(ytdAgg.kpis.combustibleTotal)}</strong>
                             </div>
-                            <div style="display:flex; justify-content:space-between; margin-bottom:2px;">
-                                <span style="font-size:0.9rem; color:#4b5563;">Factor Potencia Promedio:</span>
+                            <div class="detail-row">
+                                <span>Factor Potencia Promedio:</span>
                                 <strong style="color:#111;">${formatNumber(ytdAgg.kpis.fpValor)}</strong>
                             </div>
                         </div>
@@ -1566,8 +1622,13 @@
         
         if (campo === 'm2') {
             let totalM2 = datosMaquinas.reduce((acc, m) => acc + (parseFloat(m.m2) || 0), 0);
-            document.getElementById('manualM2').value = totalM2;
-            updateDashboardView();
+            const currentPeriod = document.getElementById('periodSelect').value;
+            if (currentPeriod !== 'ALL') {
+                document.getElementById('manualM2').value = totalM2;
+                onManualM2Input(); // Guarda en DB y recarga visual
+            } else {
+                updateDashboardView();
+            }
         }
     }
 
