@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Historial de Factura Eléctrica y Producción</title>
-    <!-- Importar Chart.js para los gráficos de producción -->
+    <link rel="icon" href="data:image/x-icon;base64,">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
@@ -139,7 +139,7 @@
             gap: 16px;
         }
 
-        .nav-group { display: flex; align-items: center; gap: 8px; }
+        .nav-group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap;}
         select { padding: 6px 12px; border-radius: 4px; border: 1px solid var(--border); font-size: 0.95rem; outline: none; }
         .view-modes { display: flex; align-items: center; gap: 12px; font-size: 0.9rem; background: #f9fafb; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border); flex-wrap: wrap; }
         .view-modes label { cursor: pointer; display: flex; align-items: center; gap: 4px; }
@@ -173,7 +173,7 @@
         .card h3 { font-size: 0.8rem; color: #6b7280; text-transform: uppercase; margin-bottom: 8px; }
         .card .value { font-size: 1.4rem; font-weight: bold; color: #111; display: flex; align-items: baseline; gap: 8px; }
 
-        .diff { font-size: 0.85rem; font-weight: 600; padding: 2px 6px; border-radius: 4px; background: #f3f4f6; }
+        .diff { font-size: 0.85rem; font-weight: 600; padding: 2px 6px; border-radius: 4px; background: #f3f4f6; display: inline-block; white-space: nowrap;}
         .diff.good { color: var(--good); background: #dcfce7; }
         .diff.bad { color: var(--bad); background: #fee2e2; }
         .diff.neutral { color: var(--neutral); }
@@ -183,18 +183,38 @@
         .bar.kw { background-color: #10b981; }
         .bar.kwh { background-color: #f59e0b; }
 
-        /* Estructura de Tablas Desplazables */
-        .tables-wrapper { display: flex; align-items: flex-start; background: var(--card-bg); border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid var(--border); overflow: hidden; margin-bottom: 30px; }
-        .base-table-container { flex: 0 0 auto; border-right: 2px solid #9ca3af; z-index: 10; box-shadow: 4px 0 8px rgba(0,0,0,0.05); background: #fff; }
-        .comp-table-container { flex: 1 1 auto; overflow-x: auto; }
-        .tables-wrapper table { width: 100%; border-collapse: collapse; text-align: left; }
-        .tables-wrapper th { background-color: #f9fafb; font-weight: 600; font-size: 0.85rem; color: #4b5563; vertical-align: middle; border-bottom: 2px solid var(--border); padding: 10px 16px; }
-        .tables-wrapper td { padding: 10px 16px; border-bottom: 1px solid var(--border); height: 64px; white-space: nowrap; vertical-align: middle; }
+        /* Estructura de Tabla Unificada y Expandible */
+        .tables-wrapper { background: var(--card-bg); border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid var(--border); overflow-x: auto; margin-bottom: 30px; }
+        .tables-wrapper table { width: 100%; border-collapse: collapse; text-align: left; min-width: 800px; }
+        .tables-wrapper th { background-color: #f9fafb; font-weight: 600; font-size: 0.85rem; color: #4b5563; vertical-align: middle; border-bottom: 2px solid var(--border); padding: 12px 16px; white-space: nowrap;}
+        .tables-wrapper td { padding: 12px 16px; border-bottom: 1px solid var(--border); vertical-align: middle; white-space: nowrap;}
+        
+        /* Celdas Pegajosas para la primera columna */
+        .sticky-col { position: sticky; left: 0; background-color: #ffffff; z-index: 10; border-right: 2px solid #e5e7eb; box-shadow: 2px 0 5px rgba(0,0,0,0.02);}
+        th.sticky-col { background-color: #f9fafb; z-index: 11; }
+
         .text-center { text-align: center; }
         .text-right { text-align: right; }
-        .border-bottom-thin { border-bottom: 1px solid var(--border) !important; }
         .compare-col { border-left: 1px solid var(--border); background-color: #fafafa; }
         .comp-header-group { border-left: 1px solid #d1d5db; text-align: center; background: #f3f4f6; }
+
+        /* Filas Expandibles */
+        .row-header { cursor: pointer; transition: background-color 0.2s; }
+        .row-header:hover { background-color: #f3f4f6; }
+        .row-header .sticky-col { transition: background-color 0.2s; }
+        .row-header:hover .sticky-col { background-color: #f3f4f6; }
+        
+        .row-detail { display: none; background-color: #f8fafc; }
+        .row-detail.open { display: table-row; animation: fadeInDown 0.3s ease forwards;}
+        
+        .detail-card { padding: 16px 24px; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; border-left: 4px solid var(--primary); margin: 8px 16px; background: #fff; border-radius: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); white-space: normal;}
+        .detail-item { display: flex; flex-direction: column; gap: 4px; }
+        .detail-item label { font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; }
+        .detail-item span { font-size: 1.1rem; color: #111; font-weight: 500; }
+        .detail-item span.highlight { color: var(--primary); font-weight: bold; }
+        
+        .toggle-icon { display: inline-block; width: 20px; text-align: center; font-weight: bold; color: var(--primary); transition: transform 0.2s; margin-right: 8px; }
+        .row-header.open .toggle-icon { transform: rotate(90deg); }
 
         /* Tooltips */
         .has-tooltip { position: relative; cursor: help; border-bottom: 1px dotted #9ca3af; color: #1f2937; }
@@ -258,15 +278,11 @@
         </div>
     </header>
 
-    <!-- NAVEGACIÓN DE PESTAÑAS -->
     <nav class="tabs">
         <button class="tab-btn active" id="btn-tab-dashboard" onclick="switchTab('dashboard')">Historial y Análisis de Factura</button>
         <button class="tab-btn" id="btn-tab-calc" onclick="switchTab('calc')">Eficiencia y Costo de Producción</button>
     </nav>
 
-    <!-- ==========================================
-         PESTAÑA 1: HISTORIAL Y ANÁLISIS DE FACTURA
-         ========================================== -->
     <div id="tab-dashboard" class="tab-content active">
         <div class="filter-bar">
             <div class="nav-group">
@@ -278,6 +294,11 @@
                 <button id="btnNext" onclick="navigate(1)" title="Mes Siguiente">&rarr;</button>
             </div>
             
+            <div class="nav-group">
+                <span class="has-tooltip" data-tooltip="Total de metros cuadrados producidos en el mes seleccionado. Por defecto, toma la suma de la pestaña 'Eficiencia'. Altere esto para ver cálculos históricos exactos por m²." style="font-size: 0.9rem; font-weight: 600;">Prod. del mes (m²):</span>
+                <input type="number" id="manualM2" value="0" step="0.01" style="width: 120px; padding: 4px 8px; border:1px solid var(--primary); border-radius:4px; font-weight:bold; color:var(--primary);" oninput="updateDashboardView()">
+            </div>
+
             <div class="view-modes">
                 <strong>Moneda:</strong>
                 <select id="displayCurrency" onchange="updateDashboardView()">
@@ -288,20 +309,17 @@
                 <span class="has-tooltip" data-tooltip="Tipo de Cambio. Se extrae automáticamente de la factura, pero puedes modificarlo para ver conversiones personalizadas." style="margin-left:8px; font-weight:600;">TC:</span>
                 <input type="number" id="manualTC" value="7.80" step="0.01" style="width: 85px; padding: 4px; border:1px solid var(--border); border-radius:4px;" oninput="updateDashboardView()">
 
-                <strong style="margin-left: 12px;">Mostrar:</strong>
-                <label><input type="radio" name="viewMode" value="ALL" checked onchange="updateDashboardView()"> Ambos</label>
-                <label><input type="radio" name="viewMode" value="KW" onchange="updateDashboardView()"> Solo KWH/KW</label>
-                <label><input type="radio" name="viewMode" value="COST" onchange="updateDashboardView()"> Solo Costos</label>
+                <strong style="margin-left: 12px; display:none;">Mostrar:</strong>
+                <label style="display:none;"><input type="radio" name="viewMode" value="ALL" checked onchange="updateDashboardView()"> Ambos</label>
             </div>
         </div>
 
         <div class="matrix-card">
             <h3>Comparar con (Selecciona Periodos):</h3>
-            <p style="font-size:0.85rem; color:#6b7280; margin-bottom:12px;">Activa las casillas para comparar el Periodo Base con meses anteriores. Si no seleccionas ninguno, la tabla derecha mostrará los <strong>porcentajes y desglose</strong> del Periodo Base.</p>
+            <p style="font-size:0.85rem; color:#6b7280; margin-bottom:12px;">Activa las casillas para comparar el Periodo Base con meses anteriores.</p>
             <div id="matrixContainer"></div>
         </div>
 
-        <!-- CUADROS RESALTADOS -->
         <div class="highlight-boxes-container">
             <div class="highlight-box blue">
                 <h4 class="has-tooltip" data-tooltip="Totales exactos extraídos directamente del resumen de la factura.">Resumen de Consumo Facturado</h4>
@@ -329,9 +347,7 @@
             </div>
         </div>
 
-        <!-- TARJETAS ANUALES / MENSUALES AGRUPADAS -->
         <div class="highlight-boxes-container">
-            <!-- 1. Indicadores Principales -->
             <div class="highlight-box">
                 <h4 class="has-tooltip" data-tooltip="Acumulados y registros del periodo seleccionado.">Indicadores Principales</h4>
                 
@@ -360,7 +376,6 @@
                 </div>
             </div>
 
-            <!-- 2. Métricas Financieras -->
             <div class="highlight-box">
                 <h4 class="has-tooltip" data-tooltip="Desglose financiero clave y tasas de conversión.">Métricas Financieras</h4>
                 
@@ -391,7 +406,6 @@
         </div>
 
         <div class="summary-cards">
-            <!-- Bajo factor de potencia aislado -->
             <div class="card" style="max-width: 400px; border-left: 4px solid var(--warning);">
                 <h3 id="lblFPYTD" class="has-tooltip" data-tooltip="Promedio del Bajo Factor de Potencia (FP) penalizado en el año frente al registrado en el mes actual.">Bajo Factor Potencia Año</h3>
                 <div class="value" style="flex-direction:column; align-items:flex-start; gap:2px;">
@@ -401,21 +415,15 @@
             </div>
         </div>
 
+        <h3 style="margin-bottom: 12px; font-size: 1.1rem; color: #1f2937;">Detalle Expandible de Conceptos</h3>
+        <p style="font-size: 0.85rem; color: #6b7280; margin-bottom: 16px;">Haz clic en cualquier fila para expandirla y ver los cálculos detallados (incluyendo rendimientos por m²).</p>
         <div class="tables-wrapper">
-            <div class="base-table-container">
-                <table id="baseTable"></table>
-            </div>
-            <div class="comp-table-container">
-                <table id="compTable"></table>
-            </div>
+            <table id="mainAnalysisTable">
+                </table>
         </div>
     </div>
 
-    <!-- ==========================================
-         PESTAÑA 2: CALCULADORA DE PRODUCCIÓN
-         ========================================== -->
     <div id="tab-calc" class="tab-content">
-        <!-- PASO 1: Ingreso de Factura -->
         <div class="panel">
             <div class="panel-header">
                 <h2>Paso 1: Datos Vinculados del Recibo Eléctrico</h2>
@@ -438,7 +446,6 @@
             </div>
         </div>
 
-        <!-- PASO 2: Ingreso de Máquinas -->
         <div class="panel">
             <div class="panel-header">
                 <h2>Paso 2: Registro Operativo por Máquina</h2>
@@ -466,13 +473,11 @@
                         </tr>
                     </thead>
                     <tbody id="tabla_ingreso">
-                        <!-- Las filas se inyectan aquí con JavaScript -->
-                    </tbody>
+                        </tbody>
                 </table>
             </div>
         </div>
 
-        <!-- PASO 3: Resultados -->
         <div class="panel">
             <div class="panel-header">
                 <h2>Paso 3: Resultados y Análisis de Costos</h2>
@@ -518,7 +523,6 @@
             </div>
         </div>
 
-        <!-- Gráficos -->
         <div class="charts-container">
             <div class="panel">
                 <h3 id="tituloChartCostos" style="margin-bottom: 15px; text-align: center; font-size:1rem;">Comparativa: Costo por m²</h3>
@@ -551,6 +555,26 @@
     }
 
     // ==========================================
+    // FUNCIONES ACORDEÓN PARA TABLA
+    // ==========================================
+    function toggleDetail(rowId) {
+        const headerRow = document.getElementById(rowId);
+        const detailRow = document.getElementById('detail-' + rowId);
+        
+        if (headerRow.classList.contains('open')) {
+            headerRow.classList.remove('open');
+            detailRow.classList.remove('open');
+        } else {
+            // Opcional: Cerrar las demás (descomenta si quieres que solo haya 1 abierta)
+            // document.querySelectorAll('.row-header').forEach(r => r.classList.remove('open'));
+            // document.querySelectorAll('.row-detail').forEach(d => d.classList.remove('open'));
+            
+            headerRow.classList.add('open');
+            detailRow.classList.add('open');
+        }
+    }
+
+    // ==========================================
     // UTILIDADES Y DICCIONARIO
     // ==========================================
     const conceptExplanations = {
@@ -568,6 +592,20 @@
         'IVA': 'Impuesto al Valor Agregado.',
         'COMBUSTIBLE': 'Cargo o ajuste variable aplicado por las fluctuaciones en el precio del combustible usado para generar electricidad.'
     };
+
+    // Orden Deseado para la Vista (Basado en la Imagen Adjunta)
+    const PREFERRED_ORDER = [
+        'ENERGIA',
+        'POTENCIA CONTRATADA',
+        'DESVIOS DE POTENCIA',
+        'VAD',
+        'PEAJE PRIMARIO',
+        'PEAJE SECUNDARIO',
+        'BAJO FACTOR DE POTENCIA',
+        'EXCESO DE POTENCIA',
+        'CARGOS SERVICIOS COMPLEMENTARIOS',
+        'MER E INTERCONEXION'
+    ];
 
     function getExplanation(concepto) {
         const upper = concepto.toUpperCase();
@@ -656,7 +694,6 @@
     let availablePeriods = []; 
     let selectedComparePeriods = [];
 
-    // Global variable for days configuration (used for Horas Programadas calc)
     let currentDaysConfig = { totalDays: 30, sundays: 4, weekdays: 26, totalHours: 720 };
 
     function initDB() {
@@ -736,7 +773,6 @@
                     facturasToImport = data.facturas; 
                     if (data.maquinas && Array.isArray(data.maquinas)) {
                         datosMaquinas = data.maquinas;
-                        // Migración a nueva estructura de horas
                         datosMaquinas = datosMaquinas.map(m => {
                             if (m.minLS === undefined) { m.minLS = 80; m.minDom = 110; }
                             if (m.horas !== undefined && m.horasProd === undefined) { m.horasProd = m.horas; delete m.horas; }
@@ -755,7 +791,8 @@
                 }
                 showToast(`Se importaron ${count} facturas correctamente.`);
                 
-                loadDataAndRefresh();     
+                loadDataAndRefresh(); 
+                calcularTodo();       
             } catch (err) { showToast("Error al importar: Archivo JSON no válido."); }
             e.target.value = '';
         };
@@ -790,6 +827,17 @@
         const y = yearMatch ? yearMatch[0] : "0000";
         if (m !== "00" && y !== "0000") return `${y}-${m}`;
         return null; 
+    }
+
+    function extractLastNumber(cols, startIdx) {
+        for (let i = cols.length - 1; i > startIdx; i--) {
+            let cell = cols[i].trim();
+            if (/[\d]/.test(cell)) {
+                let num = parseNumber(cell);
+                if (num !== 0 || cell === '0' || cell === '0.00' || cell === '0,00') return num;
+            }
+        }
+        return 0;
     }
 
     function extractAllNumbers(cols, startIdx) {
@@ -861,14 +909,12 @@
 
             if (!concepto) continue;
 
-            // IGNORAR FILAS QUE SEAN SOLAMENTE NÚMEROS HUÉRFANOS
             if (!isNaN(parseNumber(concepto)) && !/[a-zA-Z]/.test(concepto)) {
                 continue;
             }
 
             const upperConcept = concepto.toUpperCase();
             
-            // --- EXTRACCIÓN DE DATOS RESALTADOS ---
             let isSummary = false;
             if (upperConcept.includes('TOTAL CONSUMO SIN IVA')) { resumen.totalSinIva = extractAllNumbers(cols, conceptoIdx)[0] || 0; isSummary = true; }
             else if (upperConcept.includes('TOTAL CONSUMO CON IVA')) { resumen.totalConIva = extractAllNumbers(cols, conceptoIdx)[0] || 0; isSummary = true; }
@@ -931,6 +977,7 @@
                 if ((cols[idxEqual + 1] || '').toUpperCase().includes('Q')) {
                     originalCurrency = 'GTQ';
                 }
+
             } else {
                 for (let i = cols.length - 1; i > conceptoIdx; i--) {
                     let cell = cols[i].trim();
@@ -1079,7 +1126,20 @@
 
         let maxKWHBase = 0;
         let maxKWBase = 0;
-        const conceptosArr = Array.from(conceptosMap.values()).sort((a, b) => a.order - b.order);
+        const conceptosArr = Array.from(conceptosMap.values());
+
+        // Ordenamiento Personalizado basado en la Imagen/CSV
+        conceptosArr.sort((a, b) => {
+            let idxA = PREFERRED_ORDER.findIndex(o => a.concepto.toUpperCase().includes(o));
+            let idxB = PREFERRED_ORDER.findIndex(o => b.concepto.toUpperCase().includes(o));
+            
+            if (idxA === -1) idxA = 999;
+            if (idxB === -1) idxB = 999;
+            
+            if (idxA !== idxB) return idxA - idxB;
+            // Si no está en PREFERRED_ORDER, conservar orden original de aparición
+            return a.order - b.order;
+        });
         
         conceptosArr.forEach(c => {
             if (c.unidad === 'KWH') maxKWHBase = Math.max(maxKWHBase, c.cantidad);
@@ -1093,7 +1153,6 @@
         return { totalCosto, maxKWHBase, maxKWBase, conceptos: conceptosArr, kpis: kpis };
     }
 
-    // Configuración y recuento de días exactos del mes
     function updateDaysConfig() {
         const periodo = document.getElementById('periodSelect').value;
         const targetYear = periodo === 'ALL' ? (availablePeriods.length > 0 ? availablePeriods[0].split('-')[0] : new Date().getFullYear().toString()) : periodo.split('-')[0];
@@ -1161,6 +1220,30 @@
     function toggleMatrixYear(y, isChecked) { document.querySelectorAll(`.cb-y-${y}:not([disabled])`).forEach(cb => { cb.checked = isChecked; }); onMatrixChange(); }
     function onMatrixChange() { selectedComparePeriods = Array.from(document.querySelectorAll('.cb-matrix:checked')).map(cb => cb.value).sort().reverse(); updateDashboardView(); }
 
+    function actualizarHorasMesAutomatico(periodo) {
+        let horas = 720; 
+        if (periodo && periodo !== 'ALL') {
+            const parts = periodo.split('-');
+            if(parts.length === 2) {
+                const y = parseInt(parts[0]);
+                const m = parseInt(parts[1]);
+                horas = new Date(y, m, 0).getDate() * 24;
+            }
+        }
+        
+        let changed = false;
+        datosMaquinas.forEach(maq => {
+            if (maq.horasMes !== horas) {
+                maq.horasMes = horas;
+                changed = true;
+            }
+        });
+        if (changed) {
+            guardarMaquinasEnLocalStorage();
+            renderTablaIngreso();
+        }
+    }
+
     async function loadDataAndRefresh(forceSelectMonth = null) {
         allFacturasData = await getAllFacturas();
         allFacturasData.forEach(f => { if(!f.monthYear) f.monthYear = getMonthYearFromText(f.id) || "Desconocido"; });
@@ -1185,9 +1268,13 @@
         if (pSelect.value !== "ALL") {
             const baseFactura = allFacturasData.find(f => f.monthYear === pSelect.value);
             if (baseFactura && baseFactura.tipoCambio) {
-                document.getElementById('manualTC').value = baseFactura.tipoCambio;
+                document.getElementById('manualTC').value = formatNumber(baseFactura.tipoCambio);
             }
         }
+
+        // Cargar total m2 incial
+        let baseM2 = datosMaquinas.reduce((acc, m) => acc + (parseFloat(m.m2) || 0), 0);
+        document.getElementById('manualM2').value = baseM2;
 
         renderMatrix();
         updateDashboardView();
@@ -1198,7 +1285,7 @@
         if (currentPeriod !== 'ALL') {
             const baseFactura = allFacturasData.find(f => f.monthYear === currentPeriod);
             if (baseFactura && baseFactura.tipoCambio) {
-                document.getElementById('manualTC').value = baseFactura.tipoCambio;
+                document.getElementById('manualTC').value = formatNumber(baseFactura.tipoCambio);
             }
         }
         updateDashboardView(); 
@@ -1224,14 +1311,12 @@
 
     function updateDashboardView() {
         const currentPeriod = document.getElementById('periodSelect').value;
-        const viewMode = document.querySelector('input[name="viewMode"]:checked').value;
-        const showKW = viewMode === 'ALL' || viewMode === 'KW';
-        const showCost = viewMode === 'ALL' || viewMode === 'COST';
         const isAll = currentPeriod === 'ALL';
         const idx = availablePeriods.indexOf(currentPeriod);
 
         const displayCurrency = document.getElementById('displayCurrency').value;
         const manualTC = parseFloat(document.getElementById('manualTC').value) || 7.80;
+        const m2Totales = parseFloat(document.getElementById('manualM2').value) || 0;
 
         document.getElementById('btnPrev').disabled = isAll || idx >= availablePeriods.length - 1;
         document.getElementById('btnNext').disabled = isAll || idx <= 0;
@@ -1249,10 +1334,8 @@
 
         const targetYear = isAll ? (availablePeriods.length > 0 ? availablePeriods[0].split('-')[0] : new Date().getFullYear()) : currentPeriod.split('-')[0];
         
-        // CÁLCULO DE DÍAS Y HORAS PARA EL MES ACTIVO
         updateDaysConfig();
 
-        // Base Aggregation Metrics
         const baseAgg = aggregateData(allFacturasData, currentPeriod, displayCurrency, manualTC);
         const ytdAgg = aggregateData(allFacturasData.filter(f => f.monthYear !== "Desconocido" && f.monthYear.startsWith(targetYear)), "ALL", displayCurrency, manualTC);
 
@@ -1287,15 +1370,13 @@
         document.getElementById('val_res_dem_firme').textContent = formatNumber(baseAgg.kpis.resumenStats.demandaFirme) + ' kW';
         document.getElementById('val_res_pot_contratada').textContent = formatNumber(isAll ? ytdAgg.kpis.potenciaContratada : baseAgg.kpis.potenciaContratada) + ' kW';
 
-        // --- TARJETAS SUPERIORES / KPI BOXES ---
+        // --- TARJETAS SUPERIORES ---
         document.getElementById('lblCostoYTD').textContent = `Costo Total Acum. (Inc. IVA) Año ${targetYear}`;
         document.getElementById('lblEnergiaYTD').textContent = `Energía Acumulada (KWH) Año ${targetYear}`;
         document.getElementById('lblPotenciaYTD').textContent = `Pot. Contratada Acumulada Año ${targetYear}`;
-        
         document.getElementById('lblCombustibleYTD').textContent = `Cargos Combustible Año ${targetYear}`;
         document.getElementById('lblTCYTD').textContent = `Tipo de Cambio Prom. Año ${targetYear}`;
         document.getElementById('lblCostoKWhYTD').textContent = `Costo Real por kWh Año ${targetYear}`;
-
         document.getElementById('lblFPYTD').textContent = `Bajo Factor de Potencia Prom. Año ${targetYear}`;
 
         document.getElementById('valCostoYTD').textContent = formatMoney(ytdAgg.kpis.costoTotal);
@@ -1305,188 +1386,127 @@
         document.getElementById('valCombustibleYTD').textContent = formatMoney(ytdAgg.kpis.combustibleTotal);
         document.getElementById('valTCYTD').textContent = `Q${formatNumber(ytdAgg.kpis.tipoCambio)} x $1`;
         document.getElementById('valCostoKWhYTD').textContent = formatMoney4(ytdAgg.kpis.costoPorKWh);
-
         document.getElementById('valFPYTD').textContent = formatNumber(ytdAgg.kpis.fpValor);
         
         if (isAll) {
             document.getElementById('valCostoCurrent').textContent = `* Suma de todos los meses de ${targetYear}`;
             document.getElementById('valEnergiaCurrent').textContent = `* Suma de todos los meses de ${targetYear}`;
             document.getElementById('valPotenciaCurrent').textContent = `* Suma de todos los meses de ${targetYear}`;
-            
             document.getElementById('valCombustibleCurrent').textContent = `* Suma de todos los meses de ${targetYear}`;
             document.getElementById('valTCCurrent').textContent = `* Promedio de todos los meses de ${targetYear}`;
             document.getElementById('valCostoKWhCurrent').textContent = `* Promedio de todos los meses de ${targetYear}`;
-
             document.getElementById('valFPCurrent').textContent = `* Promedio de todos los meses de ${targetYear}`;
         } else {
             document.getElementById('valCostoCurrent').textContent = `Mes Actual Analizado: ${formatMoney(baseAgg.kpis.costoTotal)}`;
             document.getElementById('valEnergiaCurrent').textContent = `Mes Actual Analizado: ${formatNumber(baseAgg.kpis.energiaTotal)}`;
             document.getElementById('valPotenciaCurrent').textContent = `Mes Actual Analizado: ${formatNumber(baseAgg.kpis.potenciaContratada)} KW`;
-            
             document.getElementById('valCombustibleCurrent').textContent = `Mes Actual Analizado: ${formatMoney(baseAgg.kpis.combustibleTotal)}`;
             document.getElementById('valTCCurrent').textContent = `Mes Actual Analizado: Q${formatNumber(baseAgg.kpis.tipoCambio)} x $1`;
             document.getElementById('valCostoKWhCurrent').textContent = `Mes Actual Analizado: ${formatMoney4(baseAgg.kpis.costoPorKWh)}`;
-
             document.getElementById('valFPCurrent').textContent = `Mes Actual Analizado: ${formatNumber(baseAgg.kpis.fpValor)}`;
         }
 
-        // Recalcular Produccion ahora usando currentDaysConfig
+        actualizarHorasMesAutomatico(currentPeriod);
         calcularTodo();
 
-        // --- TABLAS DE ANÁLISIS ---
+        // --- TABLA UNIFICADA (Acordeón) ---
         const compAggs = selectedComparePeriods.map(p => ({ period: p, data: aggregateData(allFacturasData, p, displayCurrency, manualTC) }));
+        let tableHtml = '';
 
-        let baseThead = `<tr><th rowspan="2">Concepto</th>`;
-        if (showKW) baseThead += `<th colspan="3" class="text-center border-bottom-thin">Consumo / Registro</th>`; 
-        if (showCost) baseThead += `<th rowspan="2" class="text-right">Costo Total</th>`;
-        baseThead += `</tr><tr>`;
-        if (showKW) baseThead += `<th class="text-right">Cantidad</th><th>Und</th><th class="text-right">Precio Unit.</th>`; 
-        baseThead += `</tr>`;
+        // --- Construcción del Encabezado ---
+        tableHtml += `<thead><tr>`;
+        tableHtml += `<th class="sticky-col" style="min-width: 280px;">Concepto (Clic para detalle)</th>`;
+        tableHtml += `<th class="text-right">Cantidad</th>`;
+        tableHtml += `<th>Unidad</th>`;
+        tableHtml += `<th class="text-right">Precio Unit.</th>`;
+        tableHtml += `<th class="text-right">Costo Total</th>`;
 
-        let compThead = `<tr>`;
+        // Columnas de Comparación
         if (compAggs.length === 0) {
-            let colsCount = (showKW ? 1 : 0) + (showCost ? 1 : 0);
-            if (colsCount === 0) colsCount = 1;
-            compThead += `<th colspan="${colsCount}" class="comp-header-group border-bottom-thin" style="background:#e0e7ff; color:#3730a3;">Análisis y Porcentajes de Volumen Físico</th></tr><tr>`;
-            if (showKW) compThead += `<th class="compare-col">% de Uso de Capacidad / Energía</th>`;
-            if (showCost) compThead += `<th class="compare-col">% de Impacto en Factura</th>`;
-            compThead += `</tr>`;
+            tableHtml += `<th class="compare-col" style="min-width:180px;">% de Impacto Costo</th>`;
         } else {
             compAggs.forEach(c => {
-                let colsCount = (showKW ? 1 : 0) + (showCost ? 1 : 0);
-                compThead += `<th colspan="${colsCount}" class="comp-header-group border-bottom-thin">Vs. ${formatMonthYearLabel(c.period)}</th>`;
+                tableHtml += `<th class="text-right compare-col">Vs. ${formatMonthYearLabel(c.period)} (Costo)</th>`;
             });
-            compThead += `</tr><tr>`;
-            compAggs.forEach(c => {
-                if(showKW) compThead += `<th class="text-right compare-col">Diferencia Kw.</th>`;
-                if(showCost) compThead += `<th class="text-right compare-col">Diferencia Costo</th>`;
-            });
-            compThead += `</tr>`;
         }
+        tableHtml += `</tr></thead>`;
 
-        let baseTbody = '', compTbody = '';
-
-        // --- INYECCIÓN DE MÉTRICAS PRINCIPALES COMO FILAS EN LA TABLA ---
-        if (compAggs.length > 0) {
-            const kpiDefinitions = [
-                { label: "Costo Total de Conceptos", tooltip: "Suma de todos los cargos de la factura", baseVal: baseAgg.kpis.costoTotal, getCompVal: (c) => c.data.kpis.costoTotal, isCost: true, formatFn: formatMoney },
-                { label: "Energía Física Facturada", tooltip: "Energía activa consumida", baseVal: baseAgg.kpis.energiaTotal, getCompVal: (c) => c.data.kpis.energiaTotal, isCost: false, formatFn: (v) => formatNumber(v) + ' kWh' },
-                { label: "Potencia Máxima", tooltip: "Potencia máxima registrada en el mes", baseVal: baseAgg.kpis.resumenStats.potenciaMaxima, getCompVal: (c) => c.data.kpis.resumenStats.potenciaMaxima, isCost: false, formatFn: (v) => formatNumber(v) + ' kW' },
-                { label: "Potencia 18:00 a 22:00", tooltip: "Pico de potencia en horario restringido", baseVal: baseAgg.kpis.resumenStats.potenciaPico, getCompVal: (c) => c.data.kpis.resumenStats.potenciaPico, isCost: false, formatFn: (v) => formatNumber(v) + ' kW' },
-                { label: "Potencia Contratada", tooltip: "Potencia contratada mensual", baseVal: baseAgg.kpis.potenciaContratada, getCompVal: (c) => c.data.kpis.potenciaContratada, isCost: false, formatFn: (v) => formatNumber(v) + ' kW' },
-                { label: "Demanda Firme", tooltip: "Demanda firme mensual", baseVal: baseAgg.kpis.resumenStats.demandaFirme, getCompVal: (c) => c.data.kpis.resumenStats.demandaFirme, isCost: false, formatFn: (v) => formatNumber(v) + ' kW' },
-                { label: "Bajo Factor de Potencia", tooltip: "Bajo factor de potencia registrado", baseVal: baseAgg.kpis.fpValor, getCompVal: (c) => c.data.kpis.fpValor, isCost: false, formatFn: (v) => formatNumber(v) },
-                { label: "Cargos por Combustible", tooltip: "Cargos aplicados por combustible", baseVal: baseAgg.kpis.combustibleTotal, getCompVal: (c) => c.data.kpis.combustibleTotal, isCost: true, formatFn: formatMoney },
-                { label: "Costo Real por kWh", tooltip: "Costo total facturado dividido por la energía física", baseVal: baseAgg.kpis.costoPorKWh, getCompVal: (c) => c.data.kpis.costoPorKWh, isCost: true, formatFn: formatMoney4 },
-                { label: "Tipo de Cambio Aplicado", tooltip: "Tasa de cambio de la factura", baseVal: baseAgg.kpis.tipoCambio, getCompVal: (c) => c.data.kpis.tipoCambio, isCost: false, formatFn: (v) => 'Q ' + formatNumber(v) },
-                { label: "Total Consumo Sin IVA", tooltip: "Subtotal facturado (Resumen)", baseVal: baseAgg.kpis.resumenStats.totalSinIva, getCompVal: (c) => c.data.kpis.resumenStats.totalSinIva, isCost: true, formatFn: formatMoney },
-                { label: "Total Consumo Con IVA", tooltip: "Total facturado (Resumen)", baseVal: baseAgg.kpis.resumenStats.totalConIva, getCompVal: (c) => c.data.kpis.resumenStats.totalConIva, isCost: true, formatFn: formatMoney },
-                { label: "Total Consumo en Quetzales", tooltip: "Total facturado en moneda local", baseVal: baseAgg.kpis.resumenStats.totalQuetzales, getCompVal: (c) => c.data.kpis.resumenStats.totalQuetzales, isCost: true, formatFn: (v) => 'Q ' + formatNumber(v) },
-                { label: "Ajuste Precio Energía (Mes Ant.)", tooltip: "Diferencia / Ajuste del mes anterior", baseVal: baseAgg.kpis.resumenStats.ajustePrecio, getCompVal: (c) => c.data.kpis.resumenStats.ajustePrecio, isCost: true, formatFn: formatMoney }
-            ];
-
-            let bTrSep = `<tr><td colspan="${1 + (showKW ? 3 : 0) + (showCost ? 1 : 0)}" style="background:#f1f5f9; font-size:0.8rem; color:#6b7280; text-transform:uppercase; font-weight:bold;">Métricas y Resumen Financiero</td></tr>`;
-            baseTbody += bTrSep;
-            
-            let compCols = compAggs.length === 0 ? (showKW ? 1 : 0) + (showCost ? 1 : 0) : compAggs.length * ((showKW ? 1 : 0) + (showCost ? 1 : 0));
-            if (compCols === 0) compCols = 1;
-            let cTrSep = `<tr><td colspan="${compCols}" style="background:#f1f5f9;"></td></tr>`;
-            compTbody += cTrSep;
-
-            kpiDefinitions.forEach(kpi => {
-                let bTr = `<tr><td style="background:#eff6ff;"><strong class="has-tooltip" data-tooltip="${kpi.tooltip}">${kpi.label}</strong></td>`;
-                if (showKW) {
-                    if (!kpi.isCost) bTr += `<td class="text-right" style="background:#eff6ff;">${kpi.formatFn(kpi.baseVal)}</td><td style="background:#eff6ff;">-</td><td style="background:#eff6ff;"></td>`;
-                    else bTr += `<td colspan="3" style="background:#eff6ff;"></td>`;
-                }
-                if (showCost) {
-                    if (kpi.isCost) bTr += `<td class="text-right" style="background:#eff6ff;"><strong>${kpi.formatFn(kpi.baseVal)}</strong></td>`;
-                    else bTr += `<td style="background:#eff6ff;"></td>`;
-                }
-                bTr += `</tr>`;
-                baseTbody += bTr;
-
-                let cTr = `<tr>`;
-                compAggs.forEach(cAgg => {
-                    let compVal = kpi.getCompVal(cAgg);
-                    if (showKW) {
-                        cTr += `<td class="text-right compare-col" style="background:#eff6ff;">`;
-                        if (!kpi.isCost) {
-                            let d = calculateDiff(kpi.baseVal, compVal);
-                            cTr += `<span style="font-size: 0.8rem; color:#6b7280; margin-right:6px;">(${kpi.formatFn(compVal)})</span>`;
-                            if (d.text) cTr += `<span class="diff ${d.class}">${d.text}</span>`;
-                        }
-                        cTr += `</td>`;
-                    }
-                    if (showCost) {
-                        cTr += `<td class="text-right compare-col" style="background:#eff6ff;">`;
-                        if (kpi.isCost) {
-                            let d = calculateDiff(kpi.baseVal, compVal);
-                            cTr += `<span style="font-size: 0.8rem; color:#6b7280; margin-right:6px;">(${kpi.formatFn(compVal)})</span>`;
-                            if (d.text) cTr += `<span class="diff ${d.class}">${d.text}</span>`;
-                        }
-                        cTr += `</td>`;
-                    }
-                });
-                cTr += `</tr>`;
-                compTbody += cTr;
-            });
-
-            baseTbody += `<tr><td colspan="${1 + (showKW ? 3 : 0) + (showCost ? 1 : 0)}" style="background:#f1f5f9; font-size:0.8rem; color:#6b7280; text-transform:uppercase; font-weight:bold;">Desglose Detallado de Cargos</td></tr>`;
-            compTbody += `<tr><td colspan="${compCols}" style="background:#f1f5f9;"></td></tr>`;
-        }
+        // --- Construcción del Cuerpo ---
+        tableHtml += `<tbody>`;
 
         if (baseAgg.conceptos.length === 0) {
-            let baseCols = 1 + (showKW ? 3 : 0) + (showCost ? 1 : 0); 
-            baseTbody += `<tr><td colspan="${baseCols}" style="text-align:center;">No hay datos en periodo base.</td></tr>`;
-            let compCols = compAggs.length === 0 ? (showKW ? 1 : 0) + (showCost ? 1 : 0) : compAggs.length * ((showKW ? 1 : 0) + (showCost ? 1 : 0));
-            if (compCols === 0) compCols = 1;
-            compTbody += `<tr><td colspan="${compCols}" style="text-align:center;">-</td></tr>`;
+            let totalCols = 5 + (compAggs.length === 0 ? 1 : compAggs.length);
+            tableHtml += `<tr><td colspan="${totalCols}" class="text-center">No hay datos en el periodo base.</td></tr>`;
         } else {
-            baseAgg.conceptos.forEach(item => {
+            baseAgg.conceptos.forEach((item, idx) => {
+                let rowId = `row-${idx}`;
                 let expTooltip = getExplanation(item.concepto);
                 
-                let bTr = `<tr><td><strong class="has-tooltip" data-tooltip="${expTooltip}">${item.concepto}</strong></td>`;
-                if(showKW) {
-                    let txtPrecio = item.precioUnitario > 0 ? formatMoney(item.precioUnitario) : (item.costo > 0 && item.cantidad > 0 ? formatMoney(item.costo/item.cantidad) : '-');
-                    bTr += `<td class="text-right">${formatNumber(item.cantidad)}</td><td>${item.unidad}</td><td class="text-right" style="color:#6b7280; font-size:0.85rem;">${txtPrecio}</td>`;
-                }
-                if(showCost) bTr += `<td class="text-right">${formatMoney(item.costo)}</td>`;
-                bTr += `</tr>`;
-                baseTbody += bTr;
+                // Formateo visual
+                let txtPrecio = item.precioUnitario > 0 ? formatMoney(item.precioUnitario) : (item.costo > 0 && item.cantidad > 0 ? formatMoney(item.costo/item.cantidad) : '-');
+                
+                // FILA PRINCIPAL (CLICKABLE)
+                tableHtml += `<tr id="${rowId}" class="row-header" onclick="toggleDetail('${rowId}')">`;
+                tableHtml += `<td class="sticky-col"><span class="toggle-icon">&#9658;</span><strong class="has-tooltip" data-tooltip="${expTooltip}">${item.concepto}</strong></td>`;
+                tableHtml += `<td class="text-right">${item.cantidad > 0 ? formatNumber(item.cantidad) : '-'}</td>`;
+                tableHtml += `<td>${item.unidad}</td>`;
+                tableHtml += `<td class="text-right" style="color:#6b7280;">${txtPrecio}</td>`;
+                tableHtml += `<td class="text-right" style="font-weight:600; color:#111;">${formatMoney(item.costo)}</td>`;
 
-                let cTr = `<tr>`;
                 if (compAggs.length === 0) {
-                     let pctUnidad = 0; let barClass = ''; let pctText = '-';
-                     if (item.unidad === 'KWH' && baseAgg.maxKWHBase > 0) { pctUnidad = ((item.cantidad / baseAgg.maxKWHBase) * 100); pctText = formatNumber(pctUnidad) + '%'; barClass = 'kwh'; }
-                     else if (item.unidad === 'KW' && baseAgg.maxKWBase > 0) { pctUnidad = ((item.cantidad / baseAgg.maxKWBase) * 100); pctText = formatNumber(pctUnidad) + '%'; barClass = 'kw'; }
-                     
-                     let pctCosto = 0; let pctCostoText = '-';
-                     if (baseAgg.totalCosto > 0) { pctCosto = ((item.costo / baseAgg.totalCosto) * 100); pctCostoText = formatNumber(pctCosto) + '%'; }
-
-                     if (showKW) cTr += `<td class="compare-col" style="min-width: 160px;"><div>${pctText}</div>${pctUnidad > 0 ? `<div class="bar-container"><div class="bar ${barClass}" style="width: ${pctUnidad > 100 ? 100 : pctUnidad}%"></div></div>` : ''}</td>`;
-                     if (showCost) cTr += `<td class="compare-col" style="min-width: 160px;"><div>${pctCostoText}</div>${pctCosto > 0 ? `<div class="bar-container"><div class="bar" style="width: ${pctCosto}%"></div></div>` : ''}</td>`;
+                    let pctCosto = 0; let pctCostoText = '-';
+                    if (baseAgg.totalCosto > 0) { pctCosto = ((item.costo / baseAgg.totalCosto) * 100); pctCostoText = formatNumber(pctCosto) + '%'; }
+                    tableHtml += `<td class="compare-col"><div>${pctCostoText}</div>${pctCosto > 0 ? `<div class="bar-container"><div class="bar" style="width: ${pctCosto}%"></div></div>` : ''}</td>`;
                 } else {
-                     compAggs.forEach(cAgg => {
-                         let compItem = cAgg.data.conceptos.find(c => c.concepto === item.concepto && c.unidad === item.unidad);
-                         if(showKW) {
-                             cTr += `<td class="text-right compare-col">`;
-                             if(compItem) { let d = calculateDiff(item.cantidad, compItem.cantidad); cTr += `<span style="font-size: 0.8rem; color:#6b7280; margin-right:6px;">(${formatNumber(compItem.cantidad)})</span>`; if(d.text) cTr += `<span class="diff ${d.class}">${d.text}</span>`; } else { cTr += `-`; }
-                             cTr += `</td>`;
-                         }
-                         if(showCost) {
-                             cTr += `<td class="text-right compare-col">`;
-                             if(compItem) { let d = calculateDiff(item.costo, compItem.costo); cTr += `<span style="font-size: 0.8rem; color:#6b7280; margin-right:6px;">(${formatMoney(compItem.costo)})</span>`; if(d.text) cTr += `<span class="diff ${d.class}">${d.text}</span>`; } else { cTr += `-`; }
-                             cTr += `</td>`;
-                         }
-                     });
+                    compAggs.forEach(cAgg => {
+                        let compItem = cAgg.data.conceptos.find(c => c.concepto === item.concepto && c.unidad === item.unidad);
+                        tableHtml += `<td class="text-right compare-col">`;
+                        if(compItem) { 
+                            let d = calculateDiff(item.costo, compItem.costo); 
+                            tableHtml += `<span style="font-size: 0.8rem; color:#6b7280; margin-right:6px;">(${formatMoney(compItem.costo)})</span>`; 
+                            if(d.text) tableHtml += `<span class="diff ${d.class}">${d.text}</span>`; 
+                        } else { 
+                            tableHtml += `-`; 
+                        }
+                        tableHtml += `</td>`;
+                    });
                 }
-                cTr += `</tr>`;
-                compTbody += cTr;
+                tableHtml += `</tr>`;
+
+                // FILA DE DETALLE (ACORDEÓN)
+                let totalCols = 5 + (compAggs.length === 0 ? 1 : compAggs.length);
+                
+                // Cálculos por M2 para el detalle
+                let valUndM2 = (item.cantidad > 0 && m2Totales > 0) ? (item.cantidad / m2Totales) : 0;
+                let valCostoM2 = (item.costo > 0 && m2Totales > 0) ? (item.costo / m2Totales) : 0;
+
+                tableHtml += `<tr id="detail-${rowId}" class="row-detail">`;
+                tableHtml += `<td colspan="${totalCols}" style="padding:0; border-bottom:1px solid var(--border);">`;
+                
+                tableHtml += `
+                    <div class="detail-card">
+                        <div class="detail-item">
+                            <label>Detalle Básico</label>
+                            <span>${item.cantidad > 0 ? formatNumber(item.cantidad) + ' ' + item.unidad : '-'} a ${txtPrecio}</span>
+                            <span style="font-size:0.8rem; color:var(--text-muted);">Impacto Global: ${formatMoney(item.costo)}</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Rendimiento Físico (En base a ${formatNumber(m2Totales)} m²)</label>
+                            <span class="highlight">${item.cantidad > 0 ? formatNumber(valUndM2) + ' ' + item.unidad + '/m²' : 'N/A'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Costo Específico (Por m²)</label>
+                            <span class="highlight">${item.costo > 0 ? formatMoney4(valCostoM2) + '/m²' : 'N/A'}</span>
+                        </div>
+                    </div>
+                `;
+
+                tableHtml += `</td></tr>`;
             });
         }
-        document.getElementById('baseTable').innerHTML = `<thead>${baseThead}</thead><tbody>${baseTbody}</tbody>`;
-        document.getElementById('compTable').innerHTML = `<thead>${compThead}</thead><tbody>${compTbody}</tbody>`;
+        tableHtml += `</tbody>`;
+
+        document.getElementById('mainAnalysisTable').innerHTML = tableHtml;
     }
 
     // ==========================================
@@ -1501,7 +1521,6 @@
         if (dataStr) {
             try { 
                 let loaded = JSON.parse(dataStr);
-                // Migración para soportar Horas Prog y Prod y Tiempos Improductivos
                 datosMaquinas = loaded.map(m => {
                     if (m.minLS === undefined) { m.minLS = 80; m.minDom = 110; }
                     if (m.horas !== undefined && m.horasProd === undefined) {
@@ -1553,6 +1572,13 @@
         else { datosMaquinas[index][campo] = parseFloat(valor) || 0; }
         guardarMaquinasEnLocalStorage();
         calcularTodo();
+        
+        // Si cambia los M2 en la tab 2, actualizamos el input global si estamos viendo "All" o el actual
+        if (campo === 'm2') {
+            let totalM2 = datosMaquinas.reduce((acc, m) => acc + (parseFloat(m.m2) || 0), 0);
+            document.getElementById('manualM2').value = totalM2;
+            updateDashboardView();
+        }
     }
 
     function agregarFila() {
@@ -1578,12 +1604,10 @@
         let totalKwhTeoricoMaquinas = 0;
 
         datosMaquinas.forEach((maq, index) => {
-            // Asignar nuevas horas del mes y programadas calculadas
             maq.horasMes = currentDaysConfig.totalHours;
             let minTotal = (currentDaysConfig.weekdays * maq.minLS) + (currentDaysConfig.sundays * maq.minDom);
             maq.horasProg = maq.horasMes - (minTotal / 60);
 
-            // Actualizar visualmente los campos readonly sin redibujar toda la tabla
             const elHm = document.getElementById('hm_' + index);
             const elHp = document.getElementById('hp_' + index);
             if (elHm) elHm.value = formatNumber(maq.horasMes);
@@ -1640,6 +1664,11 @@
     }
 
     function actualizarGraficos() {
+        if (typeof Chart === 'undefined') {
+            console.warn("Chart.js no se pudo cargar desde internet. Los gráficos no se mostrarán.");
+            return;
+        }
+
         const nombres = datosMaquinas.map(m => m.nombre);
         const costosPorM2 = datosMaquinas.map(m => m.costoPorM2);
         const velReal = datosMaquinas.map(m => m.velocidadReal);
@@ -1686,17 +1715,6 @@
     // ==========================================
     // PWA OFFLINE E INICIO
     // ==========================================
-    if ('serviceWorker' in navigator && window.location.protocol === 'https:') {
-        const swCode = `
-            const CACHE_NAME = 'factura-pwa-v11';
-            self.addEventListener('install', event => { event.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(['/']))); });
-            self.addEventListener('fetch', event => { event.respondWith(caches.match(event.request).then(r => r || fetch(event.request))); });
-        `;
-        const blob = new Blob([swCode], { type: 'application/javascript' });
-        const swUrl = URL.createObjectURL(blob);
-        navigator.serviceWorker.register(swUrl).catch(err => console.log('SW Reg Failed', err));
-    }
-
     window.onload = async () => {
         cargarMaquinasDesdeLocalStorage(); 
         renderTablaIngreso(); 
