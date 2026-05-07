@@ -1384,6 +1384,39 @@
                 let valGTQ = displayCurrency === 'GTQ' ? item.costo : item.costo * manualTC;
                 let valUSD = displayCurrency === 'USD' ? item.costo : item.costo / manualTC;
 
+                let eqHtml = '';
+                if (displayCurrency === 'USD') {
+                    eqHtml = `
+                    <div class="detail-row dashed">
+                        <span>Costo Equivalente en Quetzales (Q):</span>
+                        <strong style="color:#111;">Q ${formatNumber(valGTQ)}</strong>
+                    </div>`;
+                } else {
+                    eqHtml = `
+                    <div class="detail-row dashed">
+                        <span>Costo Equivalente en Dólares ($):</span>
+                        <strong style="color:#111;">$ ${formatNumber(valUSD)}</strong>
+                    </div>`;
+                }
+
+                // Condicionar el desglose financiero (Solo Energía muestra IVA y conversión por ahora)
+                let desgloseFinancieroHtml = `
+                    <div class="detail-row">
+                        <span>Precio Puramente del Cargo (Sin IVA):</span>
+                        <strong style="color:#111;">${formatMoney(item.costo)}</strong>
+                    </div>
+                `;
+
+                if (upperConcept.includes('ENERGIA') || upperConcept.includes('ENERGÍA')) {
+                    desgloseFinancieroHtml += `
+                        <div class="detail-row">
+                            <span>Precio Estimado Con IVA (12%):</span>
+                            <strong style="color:#111;">${formatMoney(item.costo * 1.12)}</strong>
+                        </div>
+                        ${eqHtml}
+                    `;
+                }
+
                 // INYECCIÓN DE TARJETAS GLOBALES ESPECÍFICAS
                 let extraCardHtml = '';
                 if (upperConcept.includes('ENERGIA') || upperConcept.includes('ENERGÍA')) {
@@ -1432,22 +1465,7 @@
                     <div class="detail-card">
                         <div class="detail-item">
                             <label>Desglose Financiero del Concepto</label>
-                            <div class="detail-row">
-                                <span>Precio Puramente del Cargo (Sin IVA):</span>
-                                <strong style="color:#111;">${formatMoney(item.costo)}</strong>
-                            </div>
-                            <div class="detail-row">
-                                <span>Precio Estimado Con IVA (12%):</span>
-                                <strong style="color:#111;">${formatMoney(item.costo * 1.12)}</strong>
-                            </div>
-                            <div class="detail-row dashed">
-                                <span>Costo Equivalente en Quetzales (Q):</span>
-                                <strong style="color:#111;">Q ${formatNumber(valGTQ)}</strong>
-                            </div>
-                            <div class="detail-row">
-                                <span>Costo Equivalente en Dólares ($):</span>
-                                <strong style="color:#111;">$ ${formatNumber(valUSD)}</strong>
-                            </div>
+                            ${desgloseFinancieroHtml}
                         </div>
 
                         <div class="detail-item">
@@ -1506,6 +1524,15 @@
             }
 
             let totalCols = 5 + (compAggs.length === 0 ? 1 : compAggs.length);
+
+            // Resumen de equivalente Total
+            let valGtqTotal = displayCurrency === 'GTQ' ? baseAgg.kpis.resumenStats.totalConIva : baseAgg.kpis.resumenStats.totalConIva * manualTC;
+            let valUsdTotal = displayCurrency === 'USD' ? baseAgg.kpis.resumenStats.totalConIva : baseAgg.kpis.resumenStats.totalConIva / manualTC;
+
+            let summaryEqHtml = displayCurrency === 'USD' 
+                ? `<div class="detail-row"><span>Total Equivalente en Quetzales:</span><strong style="color:#111;">Q ${formatNumber(valGtqTotal)}</strong></div>`
+                : `<div class="detail-row"><span>Total Equivalente en Dólares:</span><strong style="color:#111;">$ ${formatNumber(valUsdTotal)}</strong></div>`;
+
             tableHtml += `<tr id="detail-${totalRowId}" class="row-detail">
                 <td colspan="${totalCols}" style="padding:0; border-bottom:1px solid var(--border);">
                     <div class="detail-card" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));">
@@ -1520,10 +1547,7 @@
                                 <span>Total Consumo Con IVA:</span>
                                 <strong style="color:#111;">${formatMoney(baseAgg.kpis.resumenStats.totalConIva)}</strong>
                             </div>
-                            <div class="detail-row">
-                                <span>Total en Quetzales:</span>
-                                <strong style="color:#111;">Q ${formatNumber(baseAgg.kpis.resumenStats.totalQuetzales)}</strong>
-                            </div>
+                            ${summaryEqHtml}
                             <div class="detail-row dashed dashed-summary">
                                 <span>Tipo de Cambio Aplicado:</span>
                                 <strong style="color:#111;">Q ${formatNumber(baseAgg.kpis.tipoCambio)} x $1</strong>
