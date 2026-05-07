@@ -1318,7 +1318,7 @@
 
         // --- Construcción del Encabezado ---
         tableHtml += `<thead><tr>`;
-        tableHtml += `<th class="sticky-col" style="white-space: nowrap;">Concepto <span style="font-size:0.75rem; font-weight:normal; color:var(--text-muted);">(Clic detalle)</span></th>`;
+        tableHtml += `<th class="sticky-col">Concepto <span style="font-size:0.75rem; font-weight:normal; color:var(--text-muted);">(Clic detalle)</span></th>`;
         tableHtml += `<th class="text-right">Cantidad</th>`;
         tableHtml += `<th>Unidad</th>`;
         tableHtml += `<th class="text-right">Precio Unit.<br><span style="font-size:0.75rem; font-weight:normal; color:var(--text-muted);">(Sin IVA)</span></th>`;
@@ -1361,7 +1361,8 @@
 
                 if (compAggs.length === 0) {
                     let pctCosto = 0; let pctCostoText = '-';
-                    if (baseAgg.costoTotalSinIva > 0) { pctCosto = ((item.costo / baseAgg.costoTotalSinIva) * 100); pctCostoText = formatNumber(pctCosto) + '%'; }
+                    let baseParaPorcentaje = baseAgg.kpis.resumenStats.totalSinIva > 0 ? baseAgg.kpis.resumenStats.totalSinIva : baseAgg.kpis.costoTotalSinIva;
+                    if (baseParaPorcentaje > 0) { pctCosto = ((item.costo / baseParaPorcentaje) * 100); pctCostoText = formatNumber(pctCosto) + '%'; }
                     tableHtml += `<td class="compare-col"><div>${pctCostoText}</div>${pctCosto > 0 ? `<div class="bar-container"><div class="bar" style="width: ${pctCosto}%"></div></div>` : ''}</td>`;
                 } else {
                     compAggs.forEach(cAgg => {
@@ -1400,13 +1401,13 @@
                 let eqHtml = '';
                 if (displayCurrency === 'USD') {
                     eqHtml = `
-                    <div class="detail-row dashed">
+                    <div class="detail-row dashed dashed-summary">
                         <span>Costo Equivalente en Quetzales (Q):</span>
                         <strong style="color:#111;">Q ${formatNumber(valGTQ)}</strong>
                     </div>`;
                 } else {
                     eqHtml = `
-                    <div class="detail-row dashed">
+                    <div class="detail-row dashed dashed-summary">
                         <span>Costo Equivalente en Dólares ($):</span>
                         <strong style="color:#111;">$ ${formatNumber(valUSD)}</strong>
                     </div>`;
@@ -1475,24 +1476,24 @@
                 tableHtml += `<td colspan="${totalCols}" style="padding:0; border-bottom:1px solid var(--border);">`;
                 
                 tableHtml += `
-                    <div class="detail-card">
-                        <div class="detail-item">
+                    <div class="detail-card" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));">
+                        <div class="detail-item detail-item-box summary">
                             <label>Desglose Financiero del Concepto</label>
                             ${desgloseFinancieroHtml}
                         </div>
 
-                        <div class="detail-item">
+                        <div class="detail-item detail-item-box history">
                             <label>Rendimiento Físico (En base a ${formatNumber(m2Totales)} m²)</label>
-                            <span style="font-size:0.85rem; color:#6b7280; font-weight:normal; margin-bottom:4px;">Los datos de m² se guardan independientemente para cada mes.</span>
+                            <span style="font-size:0.85rem; color:#6b7280; font-weight:normal; margin-bottom:8px; display:block;">Los datos de m² se guardan independientemente para cada mes.</span>
                             
                             <div class="detail-row">
                                 <span>Unidades (kW/kWh) consumidas por m²:</span>
-                                <span class="highlight">${item.cantidad > 0 ? formatNumber(valUndM2) + ' ' + item.unidad + '/m²' : 'N/A'}</span>
+                                <strong style="color:var(--primary);">${item.cantidad > 0 ? formatNumber(valUndM2) + ' ' + item.unidad + '/m²' : 'N/A'}</strong>
                             </div>
                             
                             <div class="detail-row">
                                 <span>Costo Monetario por cada m² (Sin IVA):</span>
-                                <span class="highlight">${item.costo > 0 ? formatMoney4(valCostoM2) + ' / m²' : 'N/A'}</span>
+                                <strong style="color:var(--primary);">${item.costo > 0 ? formatMoney4(valCostoM2) + ' / m²' : 'N/A'}</strong>
                             </div>
                         </div>
                         
@@ -1507,7 +1508,7 @@
             let totalRowId = 'row-total';
             tableHtml += `
             <tr id="${totalRowId}" class="row-header" onclick="toggleDetail('${totalRowId}')" style="background-color: #f1f5f9; border-top: 2px solid #d1d5db;">
-                <td class="sticky-col" style="background-color: #f1f5f9; text-transform: uppercase; font-weight: bold; font-size: 0.95rem;"><div style="display:flex; align-items:center;"><span class="toggle-icon">&#9658;</span> <span>TOTAL FACTURADO (CON IVA)</span></div></td>
+                <td class="sticky-col" style="background-color: #f1f5f9; text-transform: uppercase; font-weight: bold; font-size: 0.95rem;"><div style="display:flex; align-items:center;"><span class="toggle-icon">&#9658;</span> <span>TOTAL FACTURADO</span></div></td>
                 <td class="text-right">-</td>
                 <td>-</td>
                 <td class="text-right">-</td>
