@@ -1,6 +1,57 @@
 // ==========================================
 // RENDERIZADO DE LA TABLA PRINCIPAL
 // ==========================================
+
+function generateRendimientoHtml(rowId, costo, cantidad, m2Totales) {
+    let html = `<div class="detail-item detail-item-box history" style="grid-column: 1 / -1;"><label>Rendimiento Físico e Indicadores (${formatNumber(m2Totales)} Base Producción)</label>
+        <div style="background:#fff; border:1px solid #e2e8f0; padding:12px; border-radius:6px; margin-top:8px; display:flex; flex-direction:column; gap:12px;">
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-size:0.9rem;">
+                <span>Costo de</span>
+                <input type="number" value="1" id="calc-qty-cost-${rowId}" style="width:70px; padding:4px; border:1px solid #cbd5e1; border-radius:4px;" oninput="updatePerfCost('${rowId}', ${costo}, ${m2Totales})">
+                <select id="calc-scale-m2-${rowId}" style="padding:4px; border:1px solid #cbd5e1; border-radius:4px;" onchange="updatePerfCost('${rowId}', ${costo}, ${m2Totales})">
+                    <option value="1">m²</option>
+                    <option value="1000">km² / k (Miles)</option>
+                    <option value="1000000">Mm² / M (Millones)</option>
+                    <option value="1000000000">Gm² / G (Mil Millones)</option>
+                </select>
+                <span>en</span>
+                <select id="calc-curr-${rowId}" style="padding:4px; border:1px solid #cbd5e1; border-radius:4px;" onchange="updatePerfCost('${rowId}', ${costo}, ${m2Totales})">
+                    <option value="normal">Moneda Base</option>
+                    <option value="cents">Centavos</option>
+                </select>
+                <span>es:</span>
+                <strong id="calc-res-cost-${rowId}" style="color:var(--primary); font-size:1.1rem; margin-left:4px;">-</strong>
+            </div>`;
+    
+    if (cantidad > 0) {
+        html += `<div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-size:0.9rem;">
+                <span>Consumo de</span>
+                <input type="number" value="1" id="calc-qty-eng-${rowId}" style="width:70px; padding:4px; border:1px solid #cbd5e1; border-radius:4px;" oninput="updatePerfEng('${rowId}', ${cantidad}, ${m2Totales})">
+                <select id="calc-scale-m2-eng-${rowId}" style="padding:4px; border:1px solid #cbd5e1; border-radius:4px;" onchange="updatePerfEng('${rowId}', ${cantidad}, ${m2Totales})">
+                    <option value="1">m²</option>
+                    <option value="1000">km² / k (Miles)</option>
+                    <option value="1000000">Mm² / M (Millones)</option>
+                    <option value="1000000000">Gm² / G (Mil Millones)</option>
+                </select>
+                <span>equivale a</span>
+                <select id="calc-scale-eng-${rowId}" style="padding:4px; border:1px solid #cbd5e1; border-radius:4px;" onchange="updatePerfEng('${rowId}', ${cantidad}, ${m2Totales})">
+                    <option value="0.001">Wh</option>
+                    <option value="1" selected>kWh</option>
+                    <option value="1000">MWh</option>
+                    <option value="1000000">GWh</option>
+                </select>
+                <span>:</span>
+                <strong id="calc-res-eng-${rowId}" style="color:var(--primary); font-size:1.1rem; margin-left:4px;">-</strong>
+            </div>`;
+    }
+    
+    html += `</div>
+        <img src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==" onload="updatePerfCost('${rowId}', ${costo}, ${m2Totales}); ${cantidad > 0 ? `updatePerfEng('${rowId}', ${cantidad}, ${m2Totales});` : ''}" style="display:none;">
+    </div>`;
+    
+    return html;
+}
+
 function renderMainTable(baseAgg,compAggs,ytdAgg,currentPeriod,isAll,targetYear,displayCurrency,manualTC,m2Totales){
     let totalCols=5+(compAggs.length===0?1:compAggs.length);
     let tableHtml=`<thead><tr>`;
@@ -47,20 +98,24 @@ function renderMainTable(baseAgg,compAggs,ytdAgg,currentPeriod,isAll,targetYear,
             if (baseParaPorcentaje > 0 && cat.id !== 'referencia' && cat.id !== 'impuesto') {
                 let pct = (groupCosto / baseParaPorcentaje) * 100;
                 if (pct > 0) {
-                    pctText = `<span style="font-size:0.85rem; background:rgba(255,255,255,0.7); color:${cat.textColor}; padding:2px 8px; border-radius:12px; margin-left:auto; font-weight:700;">${formatNumber(pct)}% del Subtotal</span>`;
+                    pctText = `<span style="font-size:0.85rem; background:rgba(255,255,255,0.7); color:${cat.textColor}; padding:2px 8px; border-radius:12px; margin-left:auto; font-weight:700; white-space:nowrap; display:inline-block;">${formatNumber(pct)}% del Subtotal</span>`;
                 }
             }
+
+            let tooltipItemsText = `Contiene ${group.items.length} concepto(s):\n` + group.items.map(item => '• ' + item.concepto).join('\n');
 
             let html=`<tr style="background-color:${cat.color}; cursor:pointer; user-select:none;" onclick="toggleCategory('${cat.id}')">
                 <td class="sticky-col" style="background-color:${cat.color};padding:10px 16px;font-weight:bold;color:${cat.textColor};font-size:0.95rem;border-bottom:2px solid ${cat.borderColor};border-top:2px solid ${cat.borderColor};">
                     <div style="display:flex;align-items:center;gap:8px;width:100%;">
                         <span id="cat-icon-${cat.id}" style="font-size:0.75rem;">▼</span>
-                        <span style="font-size:1.2rem;background:${cat.badgeColor};color:white;width:24px;height:24px;display:flex;align-items:center;justify-content:center;border-radius:4px;">${cat.icon}</span> 
-                        ${cat.label}
-                        ${pctText}
+                        <span style="font-size:1.2rem;background:${cat.badgeColor};color:white;width:24px;height:24px;display:flex;align-items:center;justify-content:center;border-radius:4px;flex-shrink:0;">${cat.icon}</span> 
+                        <span class="has-tooltip" data-tooltip="${tooltipItemsText}" style="line-height:1.2; border-bottom:1px dotted ${cat.textColor};">${cat.label}</span>
                     </div>
                 </td>
-                <td colspan="${totalCols-1}" style="border-bottom:2px solid ${cat.borderColor};border-top:2px solid ${cat.borderColor};"></td>
+                <td colspan="4" style="border-bottom:2px solid ${cat.borderColor};border-top:2px solid ${cat.borderColor};"></td>
+                <td colspan="${totalCols-5}" class="text-right" style="border-bottom:2px solid ${cat.borderColor};border-top:2px solid ${cat.borderColor}; padding-right:16px;">
+                    ${pctText}
+                </td>
             </tr>`;
             
             group.items.forEach((item,itemIdx)=>{
@@ -174,16 +229,24 @@ function renderMainTable(baseAgg,compAggs,ytdAgg,currentPeriod,isAll,targetYear,
                     let valUndM2=(item.cantidad>0&&m2Totales>0)?(item.cantidad/m2Totales):0;
                     html+=`<tr id="detail-${rowId}" class="row-detail cat-child-${cat.id}"><td colspan="${totalCols}" style="padding:0;border-bottom:1px solid var(--border);"><div class="detail-card" style="grid-template-columns:1fr;">${eduHtml}<div class="detail-item detail-item-box power" style="grid-column:1/-1;"><label>Perfil de Consumo (Horas Valle vs Pico)</label><p style="font-size:0.85rem;color:#4b5563;margin-bottom:12px;">En la tarifa industrial, el horario de <strong>18:00 a 22:00</strong> es el más caro.</p><div style="display:flex;width:100%;height:32px;border-radius:16px;overflow:hidden;border:1px solid #d1d5db;"><div class="has-tooltip" data-tooltip="Valle Nocturno (00:00-06:00)" style="width:25%;background:#d1fae5;display:flex;align-items:center;justify-content:center;">🌙</div><div class="has-tooltip" data-tooltip="Valle Diurno (06:00-18:00)" style="width:50%;background:#a7f3d0;display:flex;align-items:center;justify-content:center;">☀️</div><div class="has-tooltip" data-tooltip="HORA PICO (18:00-22:00) - Demanda Muy Cara" style="width:16.66%;background:#fecaca;display:flex;align-items:center;justify-content:center;border-left:2px solid #ef4444;border-right:2px solid #ef4444;font-weight:bold;">⚡</div><div class="has-tooltip" data-tooltip="Valle Nocturno (22:00-24:00)" style="width:8.33%;background:#d1fae5;display:flex;align-items:center;justify-content:center;">🌙</div></div><div style="display:flex;gap:16px;margin-top:8px;flex-wrap:wrap;"><div style="flex:1;background:#f8fafc;padding:12px;border-radius:8px;border:1px solid #e2e8f0;min-width:180px;"><span style="font-size:0.8rem;color:#4b5563;display:block;margin-bottom:4px;">Potencia Máx. (Resto del Día)</span><strong style="color:#111;font-size:1.25rem;">${formatNumber(baseAgg.kpis.resumenStats.potenciaMaxima)} kW</strong></div><div style="flex:1;background:#fef2f2;padding:12px;border-radius:8px;border:1px solid #fecaca;min-width:180px;"><span style="font-size:0.8rem;color:#991b1b;display:block;margin-bottom:4px;">Potencia en Pico (18h-22h)</span><strong style="color:#dc2626;font-size:1.25rem;">${formatNumber(baseAgg.kpis.resumenStats.potenciaPico)} kW</strong></div><div style="flex:1;background:#f0fdf4;padding:12px;border-radius:8px;border:1px solid #bbf7d0;min-width:180px;"><span style="font-size:0.8rem;color:#166534;display:block;margin-bottom:4px;">Demanda Firme / Contratada</span><strong style="color:#166534;font-size:1.25rem;">${formatNumber(baseAgg.kpis.resumenStats.demandaFirme||baseAgg.kpis.potenciaContratada)} kW</strong></div></div></div><div class="detail-item detail-item-box history"><label>Análisis Físico (${formatNumber(m2Totales)} m²)</label><div class="detail-row"><span>Unidades (kW) por m²:</span><strong style="color:var(--primary);">${item.cantidad>0?formatNumber(valUndM2)+' kW/m²':'N/A'}</strong></div></div></div></td></tr>`;
                 } else {
-                    let valUndM2=(item.cantidad>0&&m2Totales>0)?(item.cantidad/m2Totales):0;
-                    let valCostoM2=(item.costo>0&&m2Totales>0)?(item.costo/m2Totales):0;
-                    let valGTQ=displayCurrency==='GTQ'?item.costo:item.costo*manualTC;
-                    let valUSD=displayCurrency==='USD'?item.costo:item.costo/manualTC;
-                    let eqHtml=displayCurrency==='USD'?`<div class="detail-row dashed dashed-summary"><span>Equivalente en Quetzales (Q):</span><strong style="color:#111;">Q ${formatNumber(valGTQ)}</strong></div>`:`<div class="detail-row dashed dashed-summary"><span>Equivalente en Dólares ($):</span><strong style="color:#111;">$ ${formatNumber(valUSD)}</strong></div>`;
-                    let desgloseHtml=`<div class="detail-row"><span>Precio del Cargo (Sin IVA):</span><strong style="color:#111;">${formatMoney(item.costo)}</strong></div>`;
-                    if(upperConcept.includes('ENERGIA')||upperConcept.includes('ENERGÍA')){desgloseHtml+=`<div class="detail-row"><span>Estimado Con IVA (12%):</span><strong style="color:#111;">${formatMoney(item.costo*1.12)}</strong></div>${eqHtml}`;}
-                    let extraCardHtml='';
-                    if(upperConcept.includes('ENERGIA')||upperConcept.includes('ENERGÍA')){extraCardHtml=`<div class="detail-item detail-item-box energy"><label>Métricas de Energía</label><div class="detail-row"><span>Energía Total Facturada:</span><strong style="color:#111;">${formatNumber(baseAgg.kpis.energiaTotal)} kWh</strong></div><div class="detail-row"><span>Costo Promedio por kWh (Sin IVA):</span><strong style="color:#111;">${formatMoney4(baseAgg.kpis.costoPorKWh)}</strong></div><div class="detail-row dashed dashed-energy"><span>Energía Acumulada YTD:</span><strong style="color:#111;">${formatNumber(ytdAgg.kpis.energiaTotal)} kWh</strong></div></div>`;}
-                    html+=`<tr id="detail-${rowId}" class="row-detail cat-child-${cat.id}"><td colspan="${totalCols}" style="padding:0;border-bottom:1px solid var(--border);"><div class="detail-card">${eduHtml}<div class="detail-item detail-item-box summary"><label>Desglose Financiero</label>${desgloseHtml}</div><div class="detail-item detail-item-box history"><label>Rendimiento Físico (${formatNumber(m2Totales)} m²)</label><div class="detail-row"><span>Unidades por m²:</span><strong style="color:var(--primary);">${item.cantidad>0?formatNumber(valUndM2)+' '+item.unidad+'/m²':'N/A'}</strong></div><div class="detail-row"><span>Costo por m² (Sin IVA):</span><strong style="color:var(--primary);">${item.costo>0?formatMoney4(valCostoM2)+' / m²':'N/A'}</strong></div></div>${extraCardHtml}</div></td></tr>`;
+                    let isEnergy = upperConcept.includes('ENERGIA') || upperConcept.includes('ENERGÍA');
+                    let desgloseFinancieroHtml = '';
+                    let rendimientoHtml = '';
+                    let extraCardHtml = '';
+                    
+                    if (isEnergy) {
+                        let valGTQ=displayCurrency==='GTQ'?item.costo:item.costo*manualTC;
+                        let valUSD=displayCurrency==='USD'?item.costo:item.costo/manualTC;
+                        let eqHtml=displayCurrency==='USD'?`<div class="detail-row dashed dashed-summary"><span>Equivalente en Quetzales (Q):</span><strong style="color:#111;">Q ${formatNumber(valGTQ)}</strong></div>`:`<div class="detail-row dashed dashed-summary"><span>Equivalente en Dólares ($):</span><strong style="color:#111;">$ ${formatNumber(valUSD)}</strong></div>`;
+                        let desgloseHtml=`<div class="detail-row"><span>Precio del Cargo (Sin IVA):</span><strong style="color:#111;">${formatMoney(item.costo)}</strong></div>`;
+                        desgloseHtml+=`<div class="detail-row"><span>Estimado Con IVA (12%):</span><strong style="color:#111;">${formatMoney(item.costo*1.12)}</strong></div>${eqHtml}`;
+                        desgloseFinancieroHtml = `<div class="detail-item detail-item-box summary"><label>Desglose Financiero</label>${desgloseHtml}</div>`;
+                        
+                        extraCardHtml=`<div class="detail-item detail-item-box energy"><label>Métricas de Energía</label><div class="detail-row"><span>Energía Total Facturada:</span><strong style="color:#111;">${formatNumber(baseAgg.kpis.energiaTotal)} kWh</strong></div><div class="detail-row"><span>Costo Promedio por kWh (Sin IVA):</span><strong style="color:#111;">${formatMoney4(baseAgg.kpis.costoPorKWh)}</strong></div><div class="detail-row dashed dashed-energy"><span>Energía Acumulada YTD:</span><strong style="color:#111;">${formatNumber(ytdAgg.kpis.energiaTotal)} kWh</strong></div></div>`;
+                        
+                        rendimientoHtml = generateRendimientoHtml(rowId, item.costo, item.cantidad, m2Totales);
+                    }
+                    html+=`<tr id="detail-${rowId}" class="row-detail cat-child-${cat.id}"><td colspan="${totalCols}" style="padding:0;border-bottom:1px solid var(--border);"><div class="detail-card" ${!isEnergy ? 'style="grid-template-columns:1fr;"' : ''}>${eduHtml}${desgloseFinancieroHtml}${rendimientoHtml}${extraCardHtml}</div></td></tr>`;
                 }
             });
             return html;
@@ -206,10 +269,49 @@ function renderMainTable(baseAgg,compAggs,ytdAgg,currentPeriod,isAll,targetYear,
         let valUsdTotal=displayCurrency==='USD'?baseAgg.kpis.resumenStats.totalConIva:baseAgg.kpis.resumenStats.totalConIva/manualTC;
         let summaryEqHtml=displayCurrency==='USD'?`<div class="detail-row"><span>Total Equivalente en Quetzales:</span><strong style="color:#111;">Q ${formatNumber(valGtqTotal)}</strong></div>`:`<div class="detail-row"><span>Total Equivalente en Dólares:</span><strong style="color:#111;">$ ${formatNumber(valUsdTotal)}</strong></div>`;
 
-        tableHtml+=`<tr id="detail-${totalRowId}" class="row-detail"><td colspan="${totalCols}" style="padding:0;border-bottom:1px solid var(--border);"><div class="detail-card"><div class="detail-item detail-item-box summary"><label>Resumen Oficial de Factura</label><div class="detail-row"><span>Total Sin IVA:</span><strong style="color:#111;">${formatMoney(baseAgg.kpis.resumenStats.totalSinIva)}</strong></div><div class="detail-row"><span>Total Con IVA:</span><strong style="color:#111;">${formatMoney(baseAgg.kpis.resumenStats.totalConIva)}</strong></div>${summaryEqHtml}<div class="detail-row dashed dashed-summary"><span>Tipo de Cambio:</span><strong style="color:#111;">Q ${formatNumber(baseAgg.kpis.tipoCambio)} x $1</strong></div></div><div class="detail-item detail-item-box history"><label>Acumulados YTD (${targetYear})</label><div class="detail-row"><span>Costo Acumulado (Sin IVA):</span><strong style="color:#111;">${formatMoney(ytdAgg.kpis.resumenStats.totalSinIva>0?ytdAgg.kpis.resumenStats.totalSinIva:ytdAgg.kpis.costoTotalSinIva)}</strong></div></div>${ajusteHtml}</div></td></tr>`;
+        let rendimientoTotalHtml = generateRendimientoHtml(totalRowId, baseAgg.kpis.resumenStats.totalSinIva > 0 ? baseAgg.kpis.resumenStats.totalSinIva : baseAgg.kpis.costoTotalSinIva, baseAgg.kpis.energiaTotal, m2Totales);
+
+        tableHtml+=`<tr id="detail-${totalRowId}" class="row-detail"><td colspan="${totalCols}" style="padding:0;border-bottom:1px solid var(--border);"><div class="detail-card"><div class="detail-item detail-item-box summary"><label>Resumen Oficial de Factura</label><div class="detail-row"><span>Total Sin IVA:</span><strong style="color:#111;">${formatMoney(baseAgg.kpis.resumenStats.totalSinIva)}</strong></div><div class="detail-row"><span>Total Con IVA:</span><strong style="color:#111;">${formatMoney(baseAgg.kpis.resumenStats.totalConIva)}</strong></div>${summaryEqHtml}<div class="detail-row dashed dashed-summary"><span>Tipo de Cambio:</span><strong style="color:#111;">Q ${formatNumber(baseAgg.kpis.tipoCambio)} x $1</strong></div></div><div class="detail-item detail-item-box history"><label>Acumulados YTD (${targetYear})</label><div class="detail-row"><span>Costo Acumulado (Sin IVA):</span><strong style="color:#111;">${formatMoney(ytdAgg.kpis.resumenStats.totalSinIva>0?ytdAgg.kpis.resumenStats.totalSinIva:ytdAgg.kpis.costoTotalSinIva)}</strong></div></div>${rendimientoTotalHtml}${ajusteHtml}</div></td></tr>`;
     }
     tableHtml+=`</tbody>`;
     document.getElementById('mainAnalysisTable').innerHTML=tableHtml;
+}
+
+window.updatePerfCost = function(rowId, totalCost, m2Totales) {
+    if(!m2Totales) return;
+    let qty = parseFloat(document.getElementById('calc-qty-cost-' + rowId).value) || 0;
+    let m2Scale = parseFloat(document.getElementById('calc-scale-m2-' + rowId).value) || 1;
+    let currencyMode = document.getElementById('calc-curr-' + rowId).value;
+    
+    let costPerM2 = totalCost / m2Totales;
+    let requestedM2 = qty * m2Scale;
+    let res = costPerM2 * requestedM2;
+    
+    let prefix = window.displayCurrency === 'USD' ? '$' : 'Q';
+    if (currencyMode === 'cents') {
+        res = res * 100;
+        prefix = window.displayCurrency === 'USD' ? '¢' : '¢Q'; 
+    }
+    document.getElementById('calc-res-cost-' + rowId).innerText = prefix + ' ' + window.formatMoney4(res);
+}
+
+window.updatePerfEng = function(rowId, totalKwh, m2Totales) {
+    if(!m2Totales) return;
+    let qty = parseFloat(document.getElementById('calc-qty-eng-' + rowId).value) || 0;
+    let m2Scale = parseFloat(document.getElementById('calc-scale-m2-eng-' + rowId).value) || 1;
+    let engScale = parseFloat(document.getElementById('calc-scale-eng-' + rowId).value) || 1;
+    
+    let kwhPerM2 = totalKwh / m2Totales;
+    let requestedM2 = qty * m2Scale;
+    let resKwh = kwhPerM2 * requestedM2;
+    let finalRes = resKwh / engScale;
+    
+    let unit = "kWh";
+    if (engScale === 1000) unit = "MWh";
+    else if (engScale === 1000000) unit = "GWh";
+    else if (engScale === 0.001) unit = "Wh";
+    
+    document.getElementById('calc-res-eng-' + rowId).innerText = window.formatNumber(finalRes) + ' ' + unit;
 }
 
 window.toggleCategory = function(catId) {
@@ -227,9 +329,7 @@ window.toggleCategory = function(catId) {
 
     if (isCollapsed) {
         rows.forEach(row => {
-            if (row.classList.contains('row-header')) {
-                row.style.display = '';
-            }
+            row.style.display = '';
         });
         if (icon) icon.innerHTML = '▼';
         if (icon) icon.style.transform = 'rotate(0deg)';
@@ -238,5 +338,6 @@ window.toggleCategory = function(catId) {
             row.style.display = 'none';
         });
         if (icon) icon.innerHTML = '▶';
+        if (icon) icon.style.transform = 'rotate(-90deg)';
     }
 };
