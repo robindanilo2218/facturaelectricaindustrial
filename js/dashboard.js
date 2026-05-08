@@ -180,10 +180,34 @@ function onFilterChange(){
 
 function navigate(dir){
     const pSelect=document.getElementById('periodSelect');
-    if(pSelect.value==='ALL'){if(availablePeriods.length>0)pSelect.value=availablePeriods[0];}
-    else{
+    if(pSelect.value==='ALL'){
+        if(availablePeriods.length>0) pSelect.value=availablePeriods[0];
+    } else {
         const idx=availablePeriods.indexOf(pSelect.value);
-        if(idx!==-1){let newIdx=idx-dir;if(newIdx>=0&&newIdx<availablePeriods.length){pSelect.value=availablePeriods[newIdx];onFilterChange();return;}}
+        if(idx!==-1){
+            const newIdx=idx-dir;
+            if(newIdx>=0&&newIdx<availablePeriods.length){
+                // Desplazar periodos comparados en la misma dirección (array DESC → delta=-dir)
+                const delta=-dir;
+                const newBase=availablePeriods[newIdx];
+                selectedComparePeriods=selectedComparePeriods
+                    .map(p=>{
+                        const pIdx=availablePeriods.indexOf(p);
+                        if(pIdx===-1) return null;
+                        const shifted=pIdx+delta;
+                        if(shifted>=0&&shifted<availablePeriods.length) return availablePeriods[shifted];
+                        return null;
+                    })
+                    .filter(p=>p!==null&&p!==newBase);
+                pSelect.value=newBase;
+                // Sincronizar visualmente los checkboxes
+                document.querySelectorAll('.cb-matrix').forEach(cb=>{
+                    cb.checked=selectedComparePeriods.includes(cb.value);
+                });
+                onFilterChange();
+                return;
+            }
+        }
     }
     updateDashboardView();
 }

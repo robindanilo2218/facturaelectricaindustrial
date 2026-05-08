@@ -49,11 +49,11 @@
             <button class="tab-btn" id="btn-tab-calc" onclick="switchTab('calc')">Eficiencia y Costo de Producción</button>
         </nav>
 
-        <!-- PESTAÑA 1: HISTORIAL Y ANÁLISIS -->
-        <div id="tab-dashboard" class="tab-content active">
+        <!-- CONTROLES GLOBALES (sticky, siempre visibles) -->
+        <div class="sticky-controls">
             <div class="filter-bar">
                 <div class="nav-group">
-                    <span style="font-size:0.9rem;font-weight:600;">Periodo Base:</span>
+                    <span style="font-size:0.85rem;font-weight:600;">Periodo Base:</span>
                     <button id="btnPrev" onclick="navigate(-1)" title="Mes Anterior">&larr;</button>
                     <select id="periodSelect" onchange="onFilterChange()">
                         <option value="ALL">Todo el Historial Acumulado</option>
@@ -61,8 +61,8 @@
                     <button id="btnNext" onclick="navigate(1)" title="Mes Siguiente">&rarr;</button>
                 </div>
                 <div class="nav-group">
-                    <span class="has-tooltip" data-tooltip="Modifica esto para ver los cálculos de Rendimiento Físico exactos por m²." style="font-size:0.9rem;font-weight:600;">Prod. del mes (m²):</span>
-                    <input type="number" id="manualM2" value="0" step="0.01" style="width:120px;padding:4px 8px;border:1px solid var(--primary);border-radius:4px;font-weight:bold;color:var(--primary);" oninput="onManualM2Input()">
+                    <span class="has-tooltip" data-tooltip="Modifica esto para ver los cálculos de Rendimiento Físico exactos por m²." style="font-size:0.85rem;font-weight:600;">Prod. mes (m²):</span>
+                    <input type="number" id="manualM2" value="0" step="0.01" style="width:110px;padding:3px 7px;border:1px solid var(--primary);border-radius:4px;font-weight:bold;color:var(--primary);" oninput="onManualM2Input()">
                 </div>
                 <div class="view-modes">
                     <strong>Moneda:</strong>
@@ -70,17 +70,19 @@
                         <option value="USD">Dólares ($)</option>
                         <option value="GTQ">Quetzales (Q)</option>
                     </select>
-                    <span class="has-tooltip" data-tooltip="Tipo de Cambio. Se extrae automáticamente de la factura." style="margin-left:8px;font-weight:600;">TC:</span>
-                    <input type="number" id="manualTC" value="7.80" step="0.01" style="width:85px;padding:4px;border:1px solid var(--border);border-radius:4px;" oninput="updateDashboardView()">
+                    <span class="has-tooltip" data-tooltip="Tipo de Cambio. Se extrae automáticamente de la factura." style="margin-left:6px;font-weight:600;">TC:</span>
+                    <input type="number" id="manualTC" value="7.80" step="0.01" style="width:80px;padding:3px;border:1px solid var(--border);border-radius:4px;" oninput="updateDashboardView()">
                 </div>
             </div>
 
             <div class="matrix-card">
-                <h3>Comparar con (Selecciona Periodos):</h3>
-                <p style="font-size:0.85rem;color:#6b7280;margin-bottom:12px;">Activa las casillas para comparar el Periodo Base con meses anteriores.</p>
+                <h3>Comparar periodos: <span style="font-weight:normal;color:var(--text-muted);font-size:0.8rem;">Activa casillas para comparar con el Periodo Base. La navegación ← → también desplaza la selección.</span></h3>
                 <div id="matrixContainer"></div>
             </div>
+        </div>
 
+        <!-- PESTAÑA 1: HISTORIAL Y ANÁLISIS -->
+        <div id="tab-dashboard" class="tab-content active">
             <h3 style="margin-bottom:12px;font-size:1.1rem;color:#1f2937;">Detalle Expandible de Conceptos</h3>
             <p style="font-size:0.85rem;color:#6b7280;margin-bottom:16px;">Haz clic en cualquier fila para expandirla y ver todos los detalles: <strong>Desgloses (Sin IVA), Equivalentes de Moneda, Rendimiento Físico por m² y Registros del Mes.</strong></p>
             <div class="tables-wrapper">
