@@ -28,7 +28,10 @@
 
     <div class="container">
         <header>
-            <h1>Gestión Integral de Energía</h1>
+            <div style="display:flex; align-items:center; gap: 15px;">
+                <h1 style="margin:0;">Gestión Integral de Energía</h1>
+                <span id="appVersion" onclick="handleVersionClick()" style="background:var(--primary);color:white;padding:4px 8px;border-radius:12px;font-size:0.8rem;font-weight:bold;cursor:pointer;user-select:none;transition:background 0.3s;" title="Clic 3 veces para forzar actualización">v1.0.1</span>
+            </div>
             <div class="controls">
                 <label class="file-upload-label secondary">
                     Importar JSON
@@ -187,7 +190,6 @@
                     </table>
                 </div>
             </div>
-
             <!-- Gráficos -->
             <div class="charts-container">
                 <div class="panel">
@@ -203,6 +205,28 @@
     </div>
 
     <div id="toast" class="toast">Mensaje</div>
+
+    <!-- Modal de Licencia -->
+    <div id="mitModal" class="modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;">
+        <div style="background:white;padding:25px;border-radius:10px;max-width:500px;width:90%;box-shadow:0 4px 6px rgba(0,0,0,0.1);">
+            <h2 style="margin-top:0;color:#1e3a8a;font-size:1.5rem;border-bottom:2px solid #e5e7eb;padding-bottom:10px;">Licencia MIT y Descargo de Responsabilidad</h2>
+            <div style="margin-top:15px;font-size:0.95rem;color:#4b5563;line-height:1.5;">
+                <p><strong>¿Qué significa la Licencia MIT?</strong></p>
+                <p>Es una licencia de software libre permisiva que permite a cualquier persona usar, copiar, modificar, fusionar, publicar, distribuir, sublicenciar y/o vender copias del software, siempre y cuando se incluya el aviso de copyright original.</p>
+                <p style="margin-top:15px;"><strong>⚠️ Importante:</strong></p>
+                <p>Esta aplicación se proporciona "tal cual", sin garantía de ningún tipo, expresa o implícita. Es <strong>estrictamente una herramienta para administrar y gestionar los datos</strong> de facturas eléctricas ingresados por el usuario. No constituye asesoría legal, financiera ni técnica vinculante.</p>
+            </div>
+            <div style="margin-top:20px;text-align:right;">
+                <button onclick="document.getElementById('mitModal').style.display='none'" style="background:#2563eb;color:white;border:none;padding:8px 16px;border-radius:5px;cursor:pointer;font-weight:bold;">Entendido</button>
+            </div>
+        </div>
+    </div>
+
+    <footer style="margin-top:40px;padding:20px;text-align:center;font-size:0.85rem;color:#6b7280;border-top:1px solid #e5e7eb;">
+        <p>Distribuido bajo la <a href="#" onclick="event.preventDefault(); document.getElementById('mitModal').style.display='flex';" style="color:#2563eb;text-decoration:underline;">Licencia MIT</a>.</p>
+        <p style="margin-top:5px;">Mantenido por <a href="https://crgm.app" target="_blank" style="color:#2563eb;text-decoration:none;font-weight:600;">CRGM.app</a></p>
+        <p style="margin-top:5px;">Código fuente disponible en <a href="https://github.com/robindanilo2218/facturaelectricaindustrial" target="_blank" style="color:#2563eb;text-decoration:none;font-weight:600;">GitHub</a></p>
+    </footer>
 
     <!-- Módulos JavaScript -->
     <script src="js/utils.js"></script>
