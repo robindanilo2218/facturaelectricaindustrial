@@ -715,7 +715,7 @@
         reader.readAsText(file);
     });
 
-    document.getElementById('csvInput').addEventListener('change', function(e) {
+    document.getElementById('csvInput').addEventListener('change', async function(e) {
         const file = e.target.files[0];
         if (!file) return;
         const reader = new FileReader();
@@ -723,6 +723,15 @@
             const text = event.target.result;
             const parsedData = processCSV(text);
             if (parsedData.items.length === 0) { showToast("No se encontraron datos válidos en el CSV."); return; }
+
+            // --- NUEVO: Preservar los m2 si ya existía ese mes ---
+            const existingFacturas = await getAllFacturas();
+            const existing = existingFacturas.find(f => f.monthYear === parsedData.monthYear);
+            if (existing && existing.m2 !== undefined) {
+                parsedData.m2 = existing.m2;
+            }
+            // -----------------------------------------------------
+
             await saveFactura(parsedData);
             showToast("Factura CSV importada correctamente.");
             
@@ -1654,42 +1663,6 @@
                                     <div class="detail-row dashed dashed-energy">
                                         <span>Energía Acumulada YTD (Año):</span>
                                         <strong style="color:#111;">${formatNumber(ytdAgg.kpis.energiaTotal)} kWh</strong>
-                                    </div>
-                                </div>
-                            `;
-                        } else if (upperConcept === 'VAD' || upperConcept.includes('POTENCIA')) {
-                            extraCardHtml = `
-                                <div class="detail-item detail-item-box power" style="grid-column: 1 / -1;">
-                                    <label>Perfil de Consumo (Horas Valle vs Pico)</label>
-                                    <p style="font-size:0.85rem; color:#4b5563; margin-bottom:12px; line-height:1.4;">En la tarifa industrial, el horario de <strong>18:00 a 22:00</strong> es el más caro. Los picos de demanda generados en esta franja roja incrementan tu factura de forma drástica.</p>
-                                    
-                                    <div style="display:flex; width:100%; height:32px; border-radius:16px; overflow:hidden; border:1px solid #d1d5db; position:relative; margin-bottom: 6px;">
-                                        <div class="has-tooltip" data-tooltip="Valle Nocturno (00:00 a 06:00) - Tarifa Económica" style="width: 25%; background:#d1fae5; display:flex; align-items:center; justify-content:center; font-size:1rem;">🌙</div>
-                                        <div class="has-tooltip" data-tooltip="Valle Diurno (06:00 a 18:00) - Tarifa Económica" style="width: 50%; background:#a7f3d0; display:flex; align-items:center; justify-content:center; font-size:1rem;">☀️</div>
-                                        <div class="has-tooltip" data-tooltip="HORA PICO (18:00 a 22:00) - Demanda Muy Cara" style="width: 16.66%; background:#fecaca; display:flex; align-items:center; justify-content:center; font-size:1rem; border-left:2px solid #ef4444; border-right:2px solid #ef4444; color:#991b1b; font-weight:bold;">⚡</div>
-                                        <div class="has-tooltip" data-tooltip="Valle Nocturno (22:00 a 24:00) - Tarifa Económica" style="width: 8.33%; background:#d1fae5; display:flex; align-items:center; justify-content:center; font-size:1rem;">🌙</div>
-                                    </div>
-                                    <div style="position: relative; width: 100%; height: 20px; font-size:0.75rem; color:#6b7280; font-weight: 500;">
-                                        <span style="position:absolute; left:0%;">00h</span>
-                                        <span style="position:absolute; left:25%; transform:translateX(-50%);">06h</span>
-                                        <span style="position:absolute; left:75%; transform:translateX(-50%);">18h</span>
-                                        <span style="position:absolute; left:91.66%; transform:translateX(-50%); color:#ef4444; font-weight:bold;">22h</span>
-                                        <span style="position:absolute; right:0%;">24h</span>
-                                    </div>
-                                    
-                                    <div style="display:flex; gap:16px; margin-top:8px; flex-wrap:wrap;">
-                                        <div style="flex:1; background:#f8fafc; padding:12px; border-radius:8px; border:1px solid #e2e8f0; min-width: 180px;">
-                                            <span style="font-size:0.8rem; color:#4b5563; display:block; margin-bottom:4px;">Potencia Máx. (Resto del Día)</span>
-                                            <strong style="color:#111; font-size:1.25rem;">${formatNumber(baseAgg.kpis.resumenStats.potenciaMaxima)} kW</strong>
-                                        </div>
-                                        <div style="flex:1; background:#fef2f2; padding:12px; border-radius:8px; border:1px solid #fecaca; min-width: 180px;">
-                                            <span style="font-size:0.8rem; color:#991b1b; display:block; margin-bottom:4px;">Potencia en Pico (18h a 22h)</span>
-                                            <strong style="color:#dc2626; font-size:1.25rem;">${formatNumber(baseAgg.kpis.resumenStats.potenciaPico)} kW</strong>
-                                        </div>
-                                        <div style="flex:1; background:#f0fdf4; padding:12px; border-radius:8px; border:1px solid #bbf7d0; min-width: 180px;">
-                                            <span style="font-size:0.8rem; color:#166534; display:block; margin-bottom:4px;">Demanda Firme / Contratada</span>
-                                            <strong style="color:#166534; font-size:1.25rem;">${formatNumber(baseAgg.kpis.resumenStats.demandaFirme || baseAgg.kpis.potenciaContratada)} kW</strong>
-                                        </div>
                                     </div>
                                 </div>
                             `;
