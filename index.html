@@ -4,7 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Gestión integral de factura eléctrica industrial y calculadora de costo de producción por m²">
+    <meta name="description"
+        content="Gestión integral de factura eléctrica industrial y calculadora de costo de producción por m²">
     <meta name="theme-color" content="#2563eb">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -30,7 +31,9 @@
         <header>
             <div style="display:flex; align-items:center; gap: 15px;">
                 <h1 style="margin:0;">Gestión Integral de Energía</h1>
-                <span id="appVersion" onclick="handleVersionClick()" style="background:var(--primary);color:white;padding:4px 8px;border-radius:12px;font-size:0.8rem;font-weight:bold;cursor:pointer;user-select:none;transition:background 0.3s;" title="Clic 3 veces para forzar actualización">v1.0.1</span>
+                <span id="appVersion" onclick="handleVersionClick()"
+                    style="background:var(--primary);color:white;padding:4px 8px;border-radius:12px;font-size:0.8rem;font-weight:bold;cursor:pointer;user-select:none;transition:background 0.3s;"
+                    title="Clic 3 veces para forzar actualización">v1.0.1</span>
             </div>
             <div class="controls">
                 <label class="file-upload-label secondary">
@@ -48,8 +51,10 @@
 
         <!-- NAVEGACIÓN DE PESTAÑAS -->
         <nav class="tabs">
-            <button class="tab-btn active" id="btn-tab-dashboard" onclick="switchTab('dashboard')">Historial y Análisis de Factura</button>
-            <button class="tab-btn" id="btn-tab-calc" onclick="switchTab('calc')">Eficiencia y Costo de Producción</button>
+            <button class="tab-btn active" id="btn-tab-dashboard" onclick="switchTab('dashboard')">Historial y Análisis
+                de Factura</button>
+            <button class="tab-btn" id="btn-tab-calc" onclick="switchTab('calc')">Eficiencia y Costo de
+                Producción</button>
         </nav>
 
         <!-- CONTROLES GLOBALES (sticky, siempre visibles) -->
@@ -64,8 +69,12 @@
                     <button id="btnNext" onclick="navigate(1)" title="Mes Siguiente">&rarr;</button>
                 </div>
                 <div class="nav-group">
-                    <span class="has-tooltip" data-tooltip="Modifica esto para ver los cálculos de Rendimiento Físico exactos por m²." style="font-size:0.85rem;font-weight:600;">Prod. mes (m²):</span>
-                    <input type="number" id="manualM2" value="0" step="0.01" style="width:110px;padding:3px 7px;border:1px solid var(--primary);border-radius:4px;font-weight:bold;color:var(--primary);" oninput="onManualM2Input()">
+                    <span class="has-tooltip"
+                        data-tooltip="Modifica esto para ver los cálculos de Rendimiento Físico exactos por m²."
+                        style="font-size:0.85rem;font-weight:600;">Prod. mes (m²):</span>
+                    <input type="number" id="manualM2" value="0" step="0.01"
+                        style="width:110px;padding:3px 7px;border:1px solid var(--primary);border-radius:4px;font-weight:bold;color:var(--primary);"
+                        oninput="onManualM2Input()">
                 </div>
                 <div class="view-modes">
                     <strong>Moneda:</strong>
@@ -73,13 +82,18 @@
                         <option value="USD">Dólares ($)</option>
                         <option value="GTQ">Quetzales (Q)</option>
                     </select>
-                    <span class="has-tooltip" data-tooltip="Tipo de Cambio. Se extrae automáticamente de la factura." style="margin-left:6px;font-weight:600;">TC:</span>
-                    <input type="number" id="manualTC" value="7.80" step="0.01" style="width:80px;padding:3px;border:1px solid var(--border);border-radius:4px;" oninput="updateDashboardView()">
+                    <span class="has-tooltip" data-tooltip="Tipo de Cambio. Se extrae automáticamente de la factura."
+                        style="margin-left:6px;font-weight:600;">TC:</span>
+                    <input type="number" id="manualTC" value="7.80" step="0.01"
+                        style="width:80px;padding:3px;border:1px solid var(--border);border-radius:4px;"
+                        oninput="updateDashboardView()">
                 </div>
             </div>
 
             <div class="matrix-card">
-                <h3>Comparar periodos: <span style="font-weight:normal;color:var(--text-muted);font-size:0.8rem;">Activa casillas para comparar con el Periodo Base. La navegación ← → también desplaza la selección.</span></h3>
+                <h3>Comparar periodos: <span style="font-weight:normal;color:var(--text-muted);font-size:0.8rem;">Activa
+                        casillas para comparar con el Periodo Base. La navegación ← → también desplaza la
+                        selección.</span></h3>
                 <div id="matrixContainer"></div>
             </div>
         </div>
@@ -87,7 +101,9 @@
         <!-- PESTAÑA 1: HISTORIAL Y ANÁLISIS -->
         <div id="tab-dashboard" class="tab-content active">
             <h3 style="margin-bottom:12px;font-size:1.1rem;color:#1f2937;">Detalle Expandible de Conceptos</h3>
-            <p style="font-size:0.85rem;color:#6b7280;margin-bottom:16px;">Haz clic en cualquier fila para expandirla y ver todos los detalles: <strong>Desgloses (Sin IVA), Equivalentes de Moneda, Rendimiento Físico por m² y Registros del Mes.</strong></p>
+            <p style="font-size:0.85rem;color:#6b7280;margin-bottom:16px;">Haz clic en cualquier fila para expandirla y
+                ver todos los detalles: <strong>Desgloses (Sin IVA), Equivalentes de Moneda, Rendimiento Físico por m² y
+                    Registros del Mes.</strong></p>
             <div class="tables-wrapper">
                 <table id="mainAnalysisTable"></table>
             </div>
@@ -99,10 +115,13 @@
             <div class="panel">
                 <div class="panel-header">
                     <h2>Paso 1: Datos Vinculados del Recibo Eléctrico</h2>
-                    <span id="lbl_calc_period" style="background:var(--primary);color:white;padding:4px 10px;border-radius:12px;font-size:0.85rem;font-weight:bold;">Mes Base</span>
+                    <span id="lbl_calc_period"
+                        style="background:var(--primary);color:white;padding:4px 10px;border-radius:12px;font-size:0.85rem;font-weight:bold;">Mes
+                        Base</span>
                 </div>
                 <p style="color:var(--text-muted);margin-bottom:15px;font-size:0.9rem;">
-                    Estos valores se extraen automáticamente del <strong>Periodo Base</strong> y reflejan estrictamente el <strong>Costo Sin IVA</strong>.
+                    Estos valores se extraen automáticamente del <strong>Periodo Base</strong> y reflejan estrictamente
+                    el <strong>Costo Sin IVA</strong>.
                 </p>
                 <div class="factura-inputs">
                     <div class="input-group">
@@ -125,7 +144,8 @@
                     <button class="btn-add" onclick="agregarFila()">+ Añadir Máquina</button>
                 </div>
                 <p style="color:var(--text-muted);margin-bottom:15px;font-size:0.9rem;">
-                    Modifica los valores de Tiempo Improductivo, Horas Reales, Producción y Meta. Las "Horas del Mes" y "Programadas" se calculan solas.
+                    Modifica los valores de Tiempo Improductivo, Horas Reales, Producción y Meta. Las "Horas del Mes" y
+                    "Programadas" se calculan solas.
                 </p>
                 <div class="table-responsive">
                     <table class="table-prod">
@@ -133,13 +153,25 @@
                             <tr>
                                 <th class="has-tooltip" data-tooltip="Nombre de la línea o máquina.">Máquina</th>
                                 <th class="has-tooltip" data-tooltip="Potencia nominal (kW).">Pot. (kW)</th>
-                                <th class="has-tooltip" data-tooltip="Tiempo improductivo tolerable de Lunes a Sábado (Minutos por día).">Improd. L-S<br><small>(min/día)</small></th>
-                                <th class="has-tooltip" data-tooltip="Tiempo improductivo tolerable los Domingos (Minutos por día).">Improd. Dom<br><small>(min/día)</small></th>
-                                <th class="has-tooltip" data-tooltip="Horas calendario totales del mes (Se calcula automáticamente).">Hrs. Mes<br><small>(Auto)</small></th>
-                                <th class="has-tooltip" data-tooltip="Horas Programadas (Horas calendario menos tiempo improductivo).">Hrs. Prog<br><small>(Auto)</small></th>
-                                <th class="has-tooltip" data-tooltip="Horas Reales de Producción ingresadas por ti.">Hrs. Prod<br><small>(Real)</small></th>
-                                <th class="has-tooltip" data-tooltip="Metros cuadrados totales fabricados en el periodo.">Producción<br><small>(m²)</small></th>
-                                <th class="has-tooltip" data-tooltip="Meta de velocidad de la máquina (m² por hora).">Meta<br><small>(m²/h)</small></th>
+                                <th class="has-tooltip"
+                                    data-tooltip="Tiempo improductivo tolerable de Lunes a Sábado (Minutos por día).">
+                                    Improd. L-S<br><small>(min/día)</small></th>
+                                <th class="has-tooltip"
+                                    data-tooltip="Tiempo improductivo tolerable los Domingos (Minutos por día).">Improd.
+                                    Dom<br><small>(min/día)</small></th>
+                                <th class="has-tooltip"
+                                    data-tooltip="Horas calendario totales del mes (Se calcula automáticamente).">Hrs.
+                                    Mes<br><small>(Auto)</small></th>
+                                <th class="has-tooltip"
+                                    data-tooltip="Horas Programadas (Horas calendario menos tiempo improductivo).">Hrs.
+                                    Prog<br><small>(Auto)</small></th>
+                                <th class="has-tooltip" data-tooltip="Horas Reales de Producción ingresadas por ti.">
+                                    Hrs. Prod<br><small>(Real)</small></th>
+                                <th class="has-tooltip"
+                                    data-tooltip="Metros cuadrados totales fabricados en el periodo.">
+                                    Producción<br><small>(m²)</small></th>
+                                <th class="has-tooltip" data-tooltip="Meta de velocidad de la máquina (m² por hora).">
+                                    Meta<br><small>(m²/h)</small></th>
                                 <th>Acción</th>
                             </tr>
                         </thead>
@@ -161,7 +193,8 @@
                     <div class="kpi-card alert">
                         <div class="kpi-title">Energía "Fantasma" / Servicios</div>
                         <div class="kpi-value" id="kpi_kwh_fantasma">0 kWh</div>
-                        <div style="color:var(--danger);font-weight:bold;margin-top:5px;" id="kpi_usd_fantasma">$0.00</div>
+                        <div style="color:var(--danger);font-weight:bold;margin-top:5px;" id="kpi_usd_fantasma">$0.00
+                        </div>
                     </div>
                     <div class="kpi-card">
                         <div class="kpi-title">Producción Total</div>
@@ -170,7 +203,8 @@
                     <div class="kpi-card">
                         <div class="kpi-title">Consumo Específico (Global)</div>
                         <div class="kpi-value" id="kpi_kwh_m2" style="color:var(--success);">0</div>
-                        <div style="font-size:0.8rem;color:var(--text-muted);font-weight:600;margin-top:5px;">kWh / m²</div>
+                        <div style="font-size:0.8rem;color:var(--text-muted);font-weight:600;margin-top:5px;">kWh / m²
+                        </div>
                     </div>
                 </div>
                 <h3 style="margin:20px 0 10px 0;font-size:1.1rem;">Costo por m² y Eficiencia (Por Máquina)</h3>
@@ -193,11 +227,13 @@
             <!-- Gráficos -->
             <div class="charts-container">
                 <div class="panel">
-                    <h3 id="tituloChartCostos" style="margin-bottom:15px;text-align:center;font-size:1rem;">Comparativa: Costo por m² (Sin IVA)</h3>
+                    <h3 id="tituloChartCostos" style="margin-bottom:15px;text-align:center;font-size:1rem;">Comparativa:
+                        Costo por m² (Sin IVA)</h3>
                     <div class="chart-box"><canvas id="chartCostos"></canvas></div>
                 </div>
                 <div class="panel">
-                    <h3 id="tituloChartEficiencia" style="margin-bottom:15px;text-align:center;font-size:1rem;">Impacto: Velocidad vs Costo por m²</h3>
+                    <h3 id="tituloChartEficiencia" style="margin-bottom:15px;text-align:center;font-size:1rem;">Impacto:
+                        Velocidad vs Costo por m²</h3>
                     <div class="chart-box"><canvas id="chartEficiencia"></canvas></div>
                 </div>
             </div>
@@ -207,25 +243,58 @@
     <div id="toast" class="toast">Mensaje</div>
 
     <!-- Modal de Licencia -->
-    <div id="mitModal" class="modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;">
-        <div style="background:white;padding:25px;border-radius:10px;max-width:500px;width:90%;box-shadow:0 4px 6px rgba(0,0,0,0.1);">
-            <h2 style="margin-top:0;color:#1e3a8a;font-size:1.5rem;border-bottom:2px solid #e5e7eb;padding-bottom:10px;">Licencia MIT y Descargo de Responsabilidad</h2>
+    <div id="mitModal" class="modal"
+        style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;">
+        <div
+            style="background:white;padding:25px;border-radius:10px;max-width:500px;width:90%;box-shadow:0 4px 6px rgba(0,0,0,0.1);">
+            <h2
+                style="margin-top:0;color:#1e3a8a;font-size:1.5rem;border-bottom:2px solid #e5e7eb;padding-bottom:10px;">
+                Licencia MIT y Descargo de Responsabilidad</h2>
             <div style="margin-top:15px;font-size:0.95rem;color:#4b5563;line-height:1.5;">
-                <p><strong>¿Qué significa la Licencia MIT?</strong></p>
-                <p>Es una licencia de software libre permisiva que permite a cualquier persona usar, copiar, modificar, fusionar, publicar, distribuir, sublicenciar y/o vender copias del software, siempre y cuando se incluya el aviso de copyright original.</p>
+                <div style="background:#f9fafb;padding:12px;border-radius:6px;font-size:0.75rem;max-height:150px;overflow-y:auto;white-space:pre-wrap;font-family:monospace;border:1px solid #e5e7eb;margin-bottom:15px;color:#374151;">MIT License
+
+Copyright (c) 2026 Robin Gregorio
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.</div>
                 <p style="margin-top:15px;"><strong>⚠️ Importante:</strong></p>
-                <p>Esta aplicación se proporciona "tal cual", sin garantía de ningún tipo, expresa o implícita. Es <strong>estrictamente una herramienta para administrar y gestionar los datos</strong> de facturas eléctricas ingresados por el usuario. No constituye asesoría legal, financiera ni técnica vinculante.</p>
+                <p>Esta aplicación se proporciona "tal cual", sin garantía de ningún tipo, expresa o implícita. Es
+                    <strong>estrictamente una herramienta para administrar y gestionar los datos</strong> de facturas
+                    eléctricas ingresados por el usuario. No constituye asesoría legal, financiera ni técnica
+                    vinculante.</p>
             </div>
             <div style="margin-top:20px;text-align:right;">
-                <button onclick="document.getElementById('mitModal').style.display='none'" style="background:#2563eb;color:white;border:none;padding:8px 16px;border-radius:5px;cursor:pointer;font-weight:bold;">Entendido</button>
+                <button onclick="document.getElementById('mitModal').style.display='none'"
+                    style="background:#2563eb;color:white;border:none;padding:8px 16px;border-radius:5px;cursor:pointer;font-weight:bold;">Entendido</button>
             </div>
         </div>
     </div>
 
-    <footer style="margin-top:40px;padding:20px;text-align:center;font-size:0.85rem;color:#6b7280;border-top:1px solid #e5e7eb;">
-        <p>Distribuido bajo la <a href="#" onclick="event.preventDefault(); document.getElementById('mitModal').style.display='flex';" style="color:#2563eb;text-decoration:underline;">Licencia MIT</a>.</p>
-        <p style="margin-top:5px;">Mantenido por <a href="https://crgm.app" target="_blank" style="color:#2563eb;text-decoration:none;font-weight:600;">CRGM.app</a></p>
-        <p style="margin-top:5px;">Código fuente disponible en <a href="https://github.com/robindanilo2218/facturaelectricaindustrial" target="_blank" style="color:#2563eb;text-decoration:none;font-weight:600;">GitHub</a></p>
+    <footer
+        style="margin-top:40px;padding:20px;text-align:center;font-size:0.85rem;color:#6b7280;border-top:1px solid #e5e7eb;">
+        <p>Distribuido bajo la <a href="#"
+                onclick="event.preventDefault(); document.getElementById('mitModal').style.display='flex';"
+                style="color:#2563eb;text-decoration:underline;">Licencia MIT</a>.</p>
+        <p style="margin-top:5px;">Mantenido por <a href="https://crgm.app" target="_blank"
+                style="color:#2563eb;text-decoration:none;font-weight:600;">crgm.app</a></p>
+        <p style="margin-top:5px;">Código fuente disponible en <a
+                href="https://github.com/robindanilo2218/facturaelectricaindustrial" target="_blank"
+                style="color:#2563eb;text-decoration:none;font-weight:600;">GitHub</a></p>
     </footer>
 
     <!-- Módulos JavaScript -->
