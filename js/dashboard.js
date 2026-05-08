@@ -139,6 +139,13 @@ function updateM2InputForPeriod(){
         m2Input.value=(baseFactura&&baseFactura.m2!==undefined)?baseFactura.m2:0;
         m2Input.disabled=false; m2Input.title="Producción del mes (Editable)";
     }
+    
+    // Sync loaded value with Maquina 1
+    if(typeof datosMaquinas !== 'undefined' && datosMaquinas.length > 0 && !isAll) {
+        datosMaquinas[0].m2 = parseFloat(m2Input.value) || 0;
+        if (typeof guardarMaquinasEnLocalStorage === 'function') guardarMaquinasEnLocalStorage();
+        if (typeof renderTablaIngreso === 'function') renderTablaIngreso();
+    }
 }
 
 async function onManualM2Input(){
@@ -147,6 +154,15 @@ async function onManualM2Input(){
     let m2Value=parseFloat(document.getElementById('manualM2').value)||0;
     const baseFactura=allFacturasData.find(f=>f.monthYear===currentPeriod);
     if(baseFactura){baseFactura.m2=m2Value;saveFactura(baseFactura);}
+    
+    // Sync with Maquina 1
+    if(typeof datosMaquinas !== 'undefined' && datosMaquinas.length > 0) {
+        datosMaquinas[0].m2 = m2Value;
+        if (typeof guardarMaquinasEnLocalStorage === 'function') guardarMaquinasEnLocalStorage();
+        if (typeof renderTablaIngreso === 'function') renderTablaIngreso();
+        if (typeof calcularTodo === 'function') calcularTodo();
+    }
+    
     updateDashboardView();
 }
 

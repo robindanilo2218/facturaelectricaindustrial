@@ -59,15 +59,20 @@ function actualizarDato(index, campo, valor) {
     else { datosMaquinas[index][campo] = parseFloat(valor) || 0; }
     guardarMaquinasEnLocalStorage();
     calcularTodo();
+    
     if (campo === 'm2') {
         let totalM2 = datosMaquinas.reduce((acc, m) => acc + (parseFloat(m.m2) || 0), 0);
         const currentPeriod = document.getElementById('periodSelect').value;
         if (currentPeriod !== 'ALL') {
             document.getElementById('manualM2').value = totalM2;
-            onManualM2Input();
-        } else {
-            updateDashboardView();
+            const baseFactura = allFacturasData.find(f => f.monthYear === currentPeriod);
+            if (baseFactura) { 
+                baseFactura.m2 = totalM2; 
+                saveFactura(baseFactura); 
+            }
         }
+        // Force refresh table without re-triggering the input loop
+        updateDashboardView();
     }
 }
 
