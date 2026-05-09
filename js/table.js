@@ -412,6 +412,8 @@ window.updatePerfEng = function(rowId, totalKwh, m2Totales) {
     document.getElementById('calc-res-eng-' + rowId).innerText = window.formatNumber(finalRes) + ' ' + unit;
 }
 
+window.expandedCategories = window.expandedCategories || new Set();
+
 window.toggleCategory = function(catId) {
     const rows = document.querySelectorAll(`.cat-child-${catId}`);
     if (rows.length === 0) return;
@@ -426,16 +428,26 @@ window.toggleCategory = function(catId) {
     const icon = document.getElementById(`cat-icon-${catId}`);
 
     if (isCollapsed) {
+        window.expandedCategories.add(catId);
         rows.forEach(row => {
-            row.style.display = '';
+            if (row.classList.contains('row-detail')) {
+                row.style.display = row.classList.contains('open') ? '' : 'none';
+            } else {
+                row.style.display = '';
+            }
         });
-        if (icon) icon.innerHTML = '▼';
-        if (icon) icon.style.transform = 'rotate(0deg)';
+        if (icon) {
+            icon.innerHTML = '▼';
+            icon.style.transform = 'rotate(0deg)';
+        }
     } else {
+        window.expandedCategories.delete(catId);
         rows.forEach(row => {
             row.style.display = 'none';
         });
-        if (icon) icon.innerHTML = '▶';
-        if (icon) icon.style.transform = 'rotate(-90deg)';
+        if (icon) {
+            icon.innerHTML = '▶';
+            icon.style.transform = 'rotate(-90deg)';
+        }
     }
-};
+};;
