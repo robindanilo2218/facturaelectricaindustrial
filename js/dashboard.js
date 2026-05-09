@@ -485,7 +485,6 @@ window.renderKPIDashboard = function(baseAgg, currentPeriod, isAll, manualTC, m2
     let totalEne = kwhTotal / conf.ene;
     let totalProd = m2Totales / conf.prod;
     let energyPerUnit = totalProd > 0 ? (totalEne / totalProd) : 0;
-    let unitsPerEnergy = totalEne > 0 ? (totalProd / totalEne) : 0;
     
     let prev_totalEne = prev_kwhTotal / conf.ene;
     let prev_energyPerUnit = totalProd > 0 ? (prev_totalEne / totalProd) : 0;
@@ -525,6 +524,8 @@ window.renderKPIDashboard = function(baseAgg, currentPeriod, isAll, manualTC, m2
 
     if (m2Totales > 0) {
         // Tarjeta: Eficiencia Energética (Energía por Producto)
+        let realUnitsPerEnergy = totalEne > 0 ? (m2Totales / totalEne) : 0;
+
         kpiHtml += `<div style="background:#f5f3ff; border:1px solid #c4b5fd; border-radius:8px; padding:16px; border-left:4px solid #8b5cf6;">
             <div style="font-size:0.8rem; color:#5b21b6; font-weight:bold; text-transform:uppercase; margin-bottom:4px;">Eficiencia Energética</div>
             <div style="font-size:1.6rem; color:#6d28d9; font-weight:bold; display:flex; align-items:center;">
@@ -532,7 +533,7 @@ window.renderKPIDashboard = function(baseAgg, currentPeriod, isAll, manualTC, m2
                 ${renderBadge(diffEnergyPerUnit)}
             </div>
             <div style="font-size:0.8rem; color:#6d28d9; font-weight:bold; margin-bottom:8px;">por cada ${prodName}</div>
-            <p style="font-size:0.75rem; color:#4c1d95; margin:0;">Inverso: Lograste hacer <strong>${formatNumber(unitsPerEnergy)} ${prodName}</strong> con 1 ${eneName}</p>
+            <p style="font-size:0.75rem; color:#4c1d95; margin:0;">Inverso: Lograste hacer <strong>${formatNumber(realUnitsPerEnergy)} m²</strong> reales con 1 ${eneName}</p>
         </div>`;
 
         // Tarjeta: Costo Solo Energía (Producción)
