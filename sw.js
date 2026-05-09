@@ -1,7 +1,7 @@
 // ==========================================
 // SERVICE WORKER - Cache First (Offline PWA)
 // ==========================================
-const CACHE_NAME = 'energia-app-v3.3.4';
+const CACHE_NAME = 'energia-app-v3.3.7';
 const ASSETS_TO_CACHE = [
     '/',
     '/index.html',
@@ -62,7 +62,7 @@ self.addEventListener('fetch', event => {
     }
 
     event.respondWith(
-        caches.match(event.request).then(cached => {
+        caches.match(event.request, { ignoreSearch: true }).then(cached => {
             if (cached) return cached;
             return fetch(event.request).then(response => {
                 if (response.ok) {

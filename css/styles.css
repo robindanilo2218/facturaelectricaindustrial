@@ -73,6 +73,73 @@ button.secondary:hover { background-color: #374151; }
 .btn-delete:hover { background-color: #b91c1c; }
 input[type="file"] { display: none; }
 
+/* Icon Buttons & Tooltips */
+.icon-btn {
+    font-size: 1.4rem;
+    padding: 6px 12px;
+    background-color: transparent !important;
+    color: var(--text-color) !important;
+    border: 1px solid var(--border) !important;
+    position: relative;
+    border-radius: 6px;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+.icon-btn:hover {
+    background-color: var(--border) !important;
+}
+.icon-btn.danger {
+    color: var(--danger) !important;
+    border-color: var(--danger) !important;
+}
+.icon-btn.danger:hover {
+    background-color: #fee2e2 !important;
+}
+
+.tooltip-container {
+    position: relative;
+    cursor: pointer;
+}
+.tooltip-container .tooltip-text {
+    visibility: hidden;
+    background-color: #111827;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 6px 10px;
+    position: absolute;
+    z-index: 1000;
+    top: 125%;
+    left: 50%;
+    transform: translateX(-50%);
+    opacity: 0;
+    transition: opacity 0.2s, top 0.2s;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    pointer-events: none;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    font-weight: normal;
+}
+.tooltip-container .tooltip-text::after {
+    content: "";
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: transparent transparent #111827 transparent;
+}
+.tooltip-container:hover .tooltip-text {
+    visibility: visible;
+    opacity: 1;
+    top: 135%;
+}
+
 /* TABS */
 .tabs { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 2px solid var(--border); }
 .tab-btn {
@@ -176,6 +243,8 @@ select { padding: 6px 12px; border-radius: 4px; border: 1px solid var(--border);
 
 .sticky-col { position: sticky; left: 0; background-color: #ffffff; z-index: 10; border-right: 2px solid #e5e7eb; box-shadow: 2px 0 5px rgba(0,0,0,0.02); }
 th.sticky-col { background-color: #f9fafb; z-index: 11; }
+.sticky-col:hover { z-index: 40; }
+th.sticky-col:hover { z-index: 41; }
 .text-center { text-align: center; }
 .text-right { text-align: right; }
 .compare-col { border-left: 1px solid var(--border); background-color: #fafafa; }

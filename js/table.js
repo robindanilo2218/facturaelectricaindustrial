@@ -9,22 +9,29 @@ function formatPct(num) {
     return Number(num.toPrecision(2)).toString();
 }
 
+window.calcStates = window.calcStates || {};
+
 function generateRendimientoHtml(rowId, costo, cantidad, m2Totales) {
+    let state = window.calcStates[rowId] || {
+        qtyCost: '1', scaleM2: '1', curr: 'normal',
+        qtyEng: '1', scaleM2Eng: '1', scaleEng: '1'
+    };
+    
     let html = `<div class="detail-item detail-item-box history" style="grid-column: 1 / -1;"><label>Rendimiento Físico e Indicadores (${formatNumber(m2Totales)} Base Producción)</label>
         <div style="background:#fff; border:1px solid #e2e8f0; padding:12px; border-radius:6px; margin-top:8px; display:flex; flex-direction:column; gap:12px;">
             <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-size:0.9rem;">
                 <span>Costo de</span>
-                <input type="number" value="1" id="calc-qty-cost-${rowId}" style="width:70px; padding:4px; border:1px solid #cbd5e1; border-radius:4px;" oninput="updatePerfCost('${rowId}', ${costo}, ${m2Totales})">
+                <input type="number" value="${state.qtyCost}" id="calc-qty-cost-${rowId}" style="width:70px; padding:4px; border:1px solid #cbd5e1; border-radius:4px;" oninput="updatePerfCost('${rowId}', ${costo}, ${m2Totales})">
                 <select id="calc-scale-m2-${rowId}" style="padding:4px; border:1px solid #cbd5e1; border-radius:4px;" onchange="updatePerfCost('${rowId}', ${costo}, ${m2Totales})">
-                    <option value="1">m²</option>
-                    <option value="1000">km² / k (Miles)</option>
-                    <option value="1000000">Mm² / M (Millones)</option>
-                    <option value="1000000000">Gm² / G (Mil Millones)</option>
+                    <option value="1" ${state.scaleM2 === '1' ? 'selected' : ''}>m²</option>
+                    <option value="1000" ${state.scaleM2 === '1000' ? 'selected' : ''}>km² / k (Miles)</option>
+                    <option value="1000000" ${state.scaleM2 === '1000000' ? 'selected' : ''}>Mm² / M (Millones)</option>
+                    <option value="1000000000" ${state.scaleM2 === '1000000000' ? 'selected' : ''}>Gm² / G (Mil Millones)</option>
                 </select>
                 <span>en</span>
                 <select id="calc-curr-${rowId}" style="padding:4px; border:1px solid #cbd5e1; border-radius:4px;" onchange="updatePerfCost('${rowId}', ${costo}, ${m2Totales})">
-                    <option value="normal">Moneda Base</option>
-                    <option value="cents">Centavos</option>
+                    <option value="normal" ${state.curr === 'normal' ? 'selected' : ''}>Moneda Base</option>
+                    <option value="cents" ${state.curr === 'cents' ? 'selected' : ''}>Centavos</option>
                 </select>
                 <span>es:</span>
                 <strong id="calc-res-cost-${rowId}" style="color:var(--primary); font-size:1.1rem; margin-left:4px;">-</strong>
@@ -33,19 +40,19 @@ function generateRendimientoHtml(rowId, costo, cantidad, m2Totales) {
     if (cantidad > 0) {
         html += `<div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-size:0.9rem;">
                 <span>Consumo de</span>
-                <input type="number" value="1" id="calc-qty-eng-${rowId}" style="width:70px; padding:4px; border:1px solid #cbd5e1; border-radius:4px;" oninput="updatePerfEng('${rowId}', ${cantidad}, ${m2Totales})">
+                <input type="number" value="${state.qtyEng}" id="calc-qty-eng-${rowId}" style="width:70px; padding:4px; border:1px solid #cbd5e1; border-radius:4px;" oninput="updatePerfEng('${rowId}', ${cantidad}, ${m2Totales})">
                 <select id="calc-scale-m2-eng-${rowId}" style="padding:4px; border:1px solid #cbd5e1; border-radius:4px;" onchange="updatePerfEng('${rowId}', ${cantidad}, ${m2Totales})">
-                    <option value="1">m²</option>
-                    <option value="1000">km² / k (Miles)</option>
-                    <option value="1000000">Mm² / M (Millones)</option>
-                    <option value="1000000000">Gm² / G (Mil Millones)</option>
+                    <option value="1" ${state.scaleM2Eng === '1' ? 'selected' : ''}>m²</option>
+                    <option value="1000" ${state.scaleM2Eng === '1000' ? 'selected' : ''}>km² / k (Miles)</option>
+                    <option value="1000000" ${state.scaleM2Eng === '1000000' ? 'selected' : ''}>Mm² / M (Millones)</option>
+                    <option value="1000000000" ${state.scaleM2Eng === '1000000000' ? 'selected' : ''}>Gm² / G (Mil Millones)</option>
                 </select>
                 <span>equivale a</span>
                 <select id="calc-scale-eng-${rowId}" style="padding:4px; border:1px solid #cbd5e1; border-radius:4px;" onchange="updatePerfEng('${rowId}', ${cantidad}, ${m2Totales})">
-                    <option value="0.001">Wh</option>
-                    <option value="1" selected>kWh</option>
-                    <option value="1000">MWh</option>
-                    <option value="1000000">GWh</option>
+                    <option value="0.001" ${state.scaleEng === '0.001' ? 'selected' : ''}>Wh</option>
+                    <option value="1" ${state.scaleEng === '1' ? 'selected' : ''}>kWh</option>
+                    <option value="1000" ${state.scaleEng === '1000' ? 'selected' : ''}>MWh</option>
+                    <option value="1000000" ${state.scaleEng === '1000000' ? 'selected' : ''}>GWh</option>
                 </select>
                 <span>:</span>
                 <strong id="calc-res-eng-${rowId}" style="color:var(--primary); font-size:1.1rem; margin-left:4px;">-</strong>
@@ -345,7 +352,7 @@ function renderMainTable(baseAgg,compAggs,ytdAgg,currentPeriod,isAll,targetYear,
                         fpChartHtml += `</svg></div></div>`;
                     }
                     
-                    html+=`<tr id="detail-${rowId}" class="row-detail cat-child-${cat.id} ${isDetailExpanded ? 'open' : ''}" ${!isCatExpanded ? 'style="display:none;"' : ''}><td colspan="${totalCols}" style="padding:0;border-bottom:1px solid var(--border);"><div class="detail-card" ${(!isEnergy && !isFactorPotencia) ? 'style="grid-template-columns:1fr;"' : ''}>${eduHtml}${desgloseFinancieroHtml}${rendimientoHtml}${extraCardHtml}${fpChartHtml}</div></td></tr>`;
+                    html+=`<tr id="detail-${rowId}" class="row-detail cat-child-${cat.id} ${isDetailExpanded ? 'open' : ''}" ${!isCatExpanded ? 'style="display:none;"' : ''}><td colspan="${totalCols}" style="padding:0;border-bottom:1px solid var(--border);"><div class="detail-card" ${(!isEnergy && !isFactorPotencia) ? 'style="grid-template-columns:1fr;"' : ''}>${eduHtml}${desgloseFinancieroHtml}${extraCardHtml}${rendimientoHtml}${fpChartHtml}</div></td></tr>`;
                 }
             });
             return html;
@@ -379,27 +386,56 @@ function renderMainTable(baseAgg,compAggs,ytdAgg,currentPeriod,isAll,targetYear,
 
 window.updatePerfCost = function(rowId, totalCost, m2Totales) {
     if(!m2Totales) return;
-    let qty = parseFloat(document.getElementById('calc-qty-cost-' + rowId).value) || 0;
-    let m2Scale = parseFloat(document.getElementById('calc-scale-m2-' + rowId).value) || 1;
-    let currencyMode = document.getElementById('calc-curr-' + rowId).value;
+    const qtyElem = document.getElementById('calc-qty-cost-' + rowId);
+    const m2Elem = document.getElementById('calc-scale-m2-' + rowId);
+    const currElem = document.getElementById('calc-curr-' + rowId);
+    
+    if(!qtyElem) return;
+
+    let qty = parseFloat(qtyElem.value) || 0;
+    let m2Scale = parseFloat(m2Elem.value) || 1;
+    let currencyMode = currElem.value;
+    
+    // Guardar estado
+    window.calcStates[rowId] = window.calcStates[rowId] || {};
+    window.calcStates[rowId].qtyCost = qtyElem.value;
+    window.calcStates[rowId].scaleM2 = m2Elem.value;
+    window.calcStates[rowId].curr = currencyMode;
     
     let costPerM2 = totalCost / m2Totales;
     let requestedM2 = qty * m2Scale;
     let res = costPerM2 * requestedM2;
     
-    let prefix = window.displayCurrency === 'USD' ? '$' : 'Q';
+    let outputText = "";
     if (currencyMode === 'cents') {
         res = res * 100;
-        prefix = window.displayCurrency === 'USD' ? '¢' : '¢Q'; 
+        let prefix = window.displayCurrency === 'USD' ? '¢' : '¢Q'; 
+        // No usar formatMoney4 aquí porque duplica el prefijo, usamos Number format
+        outputText = prefix + ' ' + Number(res).toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4 });
+    } else {
+        // formatMoney4 ya incluye el prefijo de la moneda base
+        outputText = window.formatMoney4(res);
     }
-    document.getElementById('calc-res-cost-' + rowId).innerText = prefix + ' ' + window.formatMoney4(res);
+    document.getElementById('calc-res-cost-' + rowId).innerText = outputText;
 }
 
 window.updatePerfEng = function(rowId, totalKwh, m2Totales) {
     if(!m2Totales) return;
-    let qty = parseFloat(document.getElementById('calc-qty-eng-' + rowId).value) || 0;
-    let m2Scale = parseFloat(document.getElementById('calc-scale-m2-eng-' + rowId).value) || 1;
-    let engScale = parseFloat(document.getElementById('calc-scale-eng-' + rowId).value) || 1;
+    const qtyElem = document.getElementById('calc-qty-eng-' + rowId);
+    const m2Elem = document.getElementById('calc-scale-m2-eng-' + rowId);
+    const engElem = document.getElementById('calc-scale-eng-' + rowId);
+    
+    if(!qtyElem) return;
+
+    let qty = parseFloat(qtyElem.value) || 0;
+    let m2Scale = parseFloat(m2Elem.value) || 1;
+    let engScale = parseFloat(engElem.value) || 1;
+    
+    // Guardar estado
+    window.calcStates[rowId] = window.calcStates[rowId] || {};
+    window.calcStates[rowId].qtyEng = qtyElem.value;
+    window.calcStates[rowId].scaleM2Eng = m2Elem.value;
+    window.calcStates[rowId].scaleEng = engElem.value;
     
     let kwhPerM2 = totalKwh / m2Totales;
     let requestedM2 = qty * m2Scale;

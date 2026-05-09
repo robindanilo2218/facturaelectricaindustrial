@@ -52,6 +52,25 @@ function aggregateData(facturas, targetMonthYear, displayCurrency, userTC) {
         sumEnergia+=(energiaReal!==null?energiaReal:maxKWH_Factura);
         sumPotencia+=pot_Factura;
     });
+
+    let hasBFP = false;
+    for (let v of conceptosMap.values()) {
+        if (v.concepto.toUpperCase().includes('BAJO FACTOR DE POTENCIA')) {
+            hasBFP = true;
+            break;
+        }
+    }
+    if (!hasBFP) {
+        conceptosMap.set('Bajo Factor de Potencia|N/A', {
+            concepto: 'Bajo Factor de Potencia',
+            unidad: 'N/A',
+            cantidad: 0,
+            costo: 0,
+            precioUnitario: 0,
+            order: 999
+        });
+    }
+
     kpis.energiaTotal=sumEnergia; kpis.potenciaContratada=sumPotencia;
     kpis.fpValor=fpCount>0?(fpSum/fpCount):0; kpis.costoTotal=totalCosto; kpis.costoTotalSinIva=totalCostoSinIva;
     kpis.tipoCambio=tcCount>0?(tcSum/tcCount):userTC;

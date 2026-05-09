@@ -44,13 +44,17 @@ async function getAllFacturas() {
 }
 
 async function clearDatabase() {
-    if (!confirm('¿Estás seguro de que quieres borrar todo el historial acumulado?')) return;
+    const code = prompt('ADVERTENCIA: Vas a borrar toda la base de datos de historial.\n\nPara confirmar, escribe la clave: 1234');
+    if (code !== '1234') {
+        if (code !== null) showToast("Clave incorrecta. Operación cancelada.");
+        return;
+    }
     return new Promise((resolve) => {
         const transaction = db.transaction([storeName], "readwrite");
         const store = transaction.objectStore(storeName);
         const request = store.clear();
         request.onsuccess = () => {
-            showToast("Historial borrado.");
+            showToast("Historial borrado completamente.");
             loadDataAndRefresh();
             resolve();
         };
@@ -68,7 +72,13 @@ async function exportJSON() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `Copia_Seguridad_Integral_${new Date().toISOString().slice(0, 10)}.json`;
+    
+    // Generar formato de fecha YYYYMMDDHHMM.fel
+    const now = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    const timestamp = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}`;
+    
+    a.download = `${timestamp}.fel`;
     a.click();
     URL.revokeObjectURL(url);
 }
@@ -113,21 +123,48 @@ function initFileListeners() {
     });
 
     document.getElementById('csvInput').addEventListener('change', async function(e) {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = async function(event) {
-            const text = event.target.result;
-            const parsedData = processCSV(text);
-            if (parsedData.items.length === 0) { showToast("No se encontraron datos válidos en el CSV."); return; }
-            const existingFacturas = await getAllFacturas();
-            const existing = existingFacturas.find(f => f.monthYear === parsedData.monthYear);
-            if (existing && existing.m2 !== undefined) { parsedData.m2 = existing.m2; }
-            await saveFactura(parsedData);
-            showToast("Factura CSV importada correctamente.");
-            loadDataAndRefresh(parsedData.monthYear);
-            e.target.value = '';
-        };
-        reader.readAsText(file);
+        const files = e.target.files;
+        if (!files || files.length === 0) return;
+        
+        let countSuccess = 0;
+        let countError = 0;
+        let lastPeriod = null;
+
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            try {
+                const text = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = event => resolve(event.target.result);
+                    reader.onerror = error => reject(error);
+                    reader.readAsText(file);
+                });
+                
+                const parsedData = processCSV(text);
+                if (parsedData.items.length === 0) { 
+                    countError++; 
+                    continue; 
+                }
+                
+                const existingFacturas = await getAllFacturas();
+                const existing = existingFacturas.find(f => f.monthYear === parsedData.monthYear);
+                if (existing && existing.m2 !== undefined) { parsedData.m2 = existing.m2; }
+                
+                await saveFactura(parsedData);
+                countSuccess++;
+                lastPeriod = parsedData.monthYear;
+            } catch(err) {
+                countError++;
+            }
+        }
+        
+        if (countSuccess > 0) {
+            showToast(`Se importaron ${countSuccess} facturas CSV.` + (countError > 0 ? ` Fallaron ${countError}.` : ''));
+            loadDataAndRefresh(lastPeriod);
+        } else {
+            showToast("No se encontraron datos válidos en los archivos seleccionados.");
+        }
+        
+        e.target.value = '';
     });
 }
