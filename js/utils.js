@@ -274,11 +274,17 @@ function toggleDetail(rowId) {
     const detailRow = document.getElementById('detail-' + rowId);
     if (headerRow.classList.contains('open')) {
         headerRow.classList.remove('open');
-        if (detailRow) detailRow.classList.remove('open');
+        if (detailRow) {
+            detailRow.classList.remove('open');
+            detailRow.style.display = 'none';
+        }
         window.expandedDetails.delete(rowId);
     } else {
         headerRow.classList.add('open');
-        if (detailRow) detailRow.classList.add('open');
+        if (detailRow) {
+            detailRow.classList.add('open');
+            detailRow.style.display = '';
+        }
         window.expandedDetails.add(rowId);
     }
 }
