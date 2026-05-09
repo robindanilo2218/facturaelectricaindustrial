@@ -438,7 +438,7 @@ window.renderKPIDashboard = function(baseAgg, currentPeriod, isAll, manualTC, m2
     // Nombres de escala
     let curName = conf.cur === 100 ? '¢' : (document.getElementById('displayCurrency').value === 'GTQ' ? 'Q' : '$');
     let eneName = conf.ene === 1 ? 'kWh' : (conf.ene === 1000 ? 'MWh' : (conf.ene === 1000000 ? 'GWh' : 'Wh'));
-    let prodName = conf.prod === 1 ? 'Unidad (m²)' : (conf.prod === 1000 ? 'k Unid. (m²)' : formatNumber(conf.prod) + ' Unid. (m²)');
+    let prodName = conf.prod === 1 ? 'Unidad (m²)' : (conf.prod === 1000 ? '1,000 Unid. (m²)' : formatNumber(conf.prod) + ' Unid. (m²)');
 
     let ind_CostoEnergiaKWh = kwhTotal > 0 ? (costoPuraEnergia / kwhTotal) * conf.ene * conf.cur : 0;
     let ind_CostoTotalKWh = kwhTotal > 0 ? (costoTotal / kwhTotal) * conf.ene * conf.cur : 0;

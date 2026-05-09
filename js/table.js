@@ -98,11 +98,13 @@ function renderMainTable(baseAgg,compAggs,ytdAgg,currentPeriod,isAll,targetYear,
         catGroups.forEach(g => { catById[g.cat.id] = g; });
 
         baseAgg.conceptos.forEach(item => {
-            const isInfoConcept = (item.costo === 0 && item.cantidad > 0) || item.concepto.toUpperCase().includes('CAMBIO');
             const cd = getConceptData(item.concepto);
-            const catId = cd ? cd.cat.id : (isInfoConcept ? 'referencia' : 'generacion');
+            const catId = cd ? cd.cat.id : ((item.costo === 0 && item.cantidad > 0) ? 'referencia' : 'generacion');
+            const isInfoConcept = (item.costo === 0 && item.cantidad > 0) 
+                || item.concepto.toUpperCase().includes('CAMBIO')
+                || catId === 'referencia';
             const grp = catById[catId] || catById['generacion'];
-            grp.items.push({...item, _isInfo: isInfoConcept, _cd: cd});
+            grp.items.push({...item, _isInfo: isInfoConcept, _cd: cd, _catId: catId});
         });
         const renderCategoryRows=(group,catIdx)=>{
             if(group.items.length===0)return '';
@@ -142,7 +144,12 @@ function renderMainTable(baseAgg,compAggs,ytdAgg,currentPeriod,isAll,targetYear,
                 let rowId = `row-${cat.id}-${safeConcept}`;
                 let expTooltip=getExplanation(item.concepto);
                 const upperConcept=item.concepto.toUpperCase();
-                const isReferenceValue=item._isInfo && (upperConcept.includes('CAMBIO')||upperConcept.includes('PRECIO')||upperConcept.includes('COMBUSTIBLE'));
+                const isReferenceValue = item._isInfo && (
+                    upperConcept.includes('CAMBIO') ||
+                    upperConcept.includes('PRECIO') ||
+                    upperConcept.includes('COMBUSTIBLE') ||
+                    item._catId === 'referencia'
+                );
                 const isPowerRecord=item._isInfo && !isReferenceValue;
                 let isExchange=upperConcept.includes('CAMBIO');
                 const formatStat=(num,isEx)=>isEx?'Q '+formatNumber(num):formatMoney4(num);
@@ -245,7 +252,103 @@ function renderMainTable(baseAgg,compAggs,ytdAgg,currentPeriod,isAll,targetYear,
                         htmlAnual+=`<div style="margin-top:12px;padding-top:12px;border-top:1px dashed #e9d5ff;"><span style="font-size:0.8rem;color:var(--primary);text-transform:uppercase;font-weight:700;display:block;margin-bottom:8px;">Cuartiles de Variación</span><div class="detail-row"><span>Q1 (Percentil 25):</span><strong style="color:#111;">${formatStat(q1,isExchange)}</strong></div><div class="detail-row"><span>Mediana (Q2):</span><strong style="color:#111;">${formatStat(q2,isExchange)}</strong></div><div class="detail-row"><span>Q3 (Percentil 75):</span><strong style="color:#111;">${formatStat(q3,isExchange)}</strong></div></div>`;
                     } else {htmlAnual=`<div class="detail-row"><span>No hay datos suficientes en el año ${targetYear}</span></div>`;}
 
-                    html+=`<tr id="detail-${rowId}" class="row-detail cat-child-${cat.id} ${isDetailExpanded ? 'open' : ''}" ${!isCatExpanded ? 'style="display:none;"' : ''}><td colspan="${totalCols}" style="padding:0;border-bottom:1px solid var(--border);"><div class="detail-card">${eduHtml}<div class="detail-item detail-item-box summary"><label>Evolución del Valor</label>${htmlEvo}</div><div class="detail-item detail-item-box history"><label>Análisis Estadístico (${targetYear})</label>${htmlAnual}</div></div></td></tr>`;
+                    let refChartHtml='';
+                    if(yearVals.length>0 && !isAll){
+                        let monthsArr = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+                        let chartData = new Array(12).fill(null);
+                        let monthExists2 = new Array(12).fill(false);
+                        
+                        allFacturasData.forEach(function(f) {
+                            if(f.monthYear.startsWith(targetYear)) {
+                                let m = parseInt(f.monthYear.substring(5,7)) - 1;
+                                let targetItem = f.items.find(function(i){ return i.concepto.toUpperCase() === upperConcept; });
+                                let val = 0;
+                                if(targetItem){val = targetItem.precioUnitario > 0 ? targetItem.precioUnitario : targetItem.costo;}
+                                else if(upperConcept.includes('CAMBIO')){val = f.tipoCambio;}
+                                if(val > 0) {
+                                    chartData[m] = val;
+                                    monthExists2[m] = true;
+                                }
+                            }
+                        });
+                        
+                        let cMin = tcMin;
+                        let cMax = tcMax;
+                        if (cMin === cMax) {
+                            cMin -= cMin * 0.1;
+                            cMax += cMax * 0.1;
+                        } else {
+                            let padding2 = (cMax - cMin) * 0.2;
+                            cMin -= padding2;
+                            cMax += padding2;
+                        }
+                        if (cMin < 0) cMin = 0;
+                        if (cMax === 0) cMax = 1;
+
+                        let chartPoints = [];
+                        for(let ci=0; ci<12; ci++) {
+                            let cx = 30 + ci * (540 / 11);
+                            let cy = 120;
+                            let cv = chartData[ci];
+                            if (monthExists2[ci]) {
+                                let norm = (cv - cMin) / (cMax - cMin);
+                                cy = 120 - norm * 90;
+                            }
+                            chartPoints.push({x:cx, y:cy, val:cv, exists:monthExists2[ci]});
+                        }
+                        
+                        let chartPathD = '';
+                        let chartFirst = true;
+                        for(let ci=0; ci<12; ci++) {
+                            let cc = chartPoints[ci];
+                            if(cc.exists) {
+                                if(chartFirst) {
+                                    chartPathD += 'M ' + cc.x + ' ' + cc.y + ' ';
+                                    chartFirst = false;
+                                } else {
+                                    let pIdx = ci-1;
+                                    while(pIdx >= 0 && !chartPoints[pIdx].exists) pIdx--;
+                                    if(pIdx >= 0) {
+                                        let pp = chartPoints[pIdx];
+                                        let cpd = (cc.x - pp.x) / 2;
+                                        chartPathD += 'C ' + (pp.x+cpd) + ' ' + pp.y + ', ' + (cc.x-cpd) + ' ' + cc.y + ', ' + cc.x + ' ' + cc.y + ' ';
+                                    } else {
+                                        chartPathD += 'M ' + cc.x + ' ' + cc.y + ' ';
+                                    }
+                                }
+                            }
+                        }
+                        
+                        refChartHtml = '<div class="detail-item detail-item-box history" style="grid-column: 1 / -1; margin-top:12px;">' +
+                            '<label>Gráfica de Evolución Anual (' + targetYear + ')</label>' +
+                            '<div style="background:#fff; border:1px solid #e2e8f0; border-radius:6px; padding:24px 8px 16px 8px; margin-top:8px; overflow-x:auto;">' +
+                            '<svg width="100%" height="150" viewBox="0 0 600 150" preserveAspectRatio="none" style="min-width:400px; display:block;">';
+                        
+                        if(chartPathD !== '') {
+                            refChartHtml += '<path d="' + chartPathD + '" fill="none" stroke="#9ca3af" stroke-width="3" stroke-linecap="round" />';
+                        }
+                        
+                        let chartCurrentM = parseInt(currentPeriod.substring(5,7)) - 1;
+                        let chartCurrentYear = currentPeriod.startsWith(targetYear);
+
+                        chartPoints.forEach(function(p, i) {
+                            if(p.exists) {
+                                let isMinP = (p.val === tcMin);
+                                let isMaxP = (p.val === tcMax);
+                                let cColor = isMaxP ? '#ef4444' : (isMinP ? '#10b981' : '#6b7280');
+                                refChartHtml += '<circle cx="' + p.x + '" cy="' + p.y + '" r="4" fill="#fff" stroke="' + cColor + '" stroke-width="2" />';
+                                refChartHtml += '<text x="' + p.x + '" y="' + (p.y - 12) + '" fill="#4b5563" font-size="10" text-anchor="middle">' + formatStat(p.val, isExchange) + '</text>';
+                            }
+                            let tY = 140;
+                            let tCol = chartCurrentYear && i === chartCurrentM ? '#2563eb' : '#4b5563';
+                            let tSize = chartCurrentYear && i === chartCurrentM ? '13' : '11';
+                            refChartHtml += '<text x="' + p.x + '" y="' + tY + '" fill="' + tCol + '" font-size="' + tSize + '" font-weight="bold" text-anchor="middle">' + monthsArr[i] + '</text>';
+                        });
+                        
+                        refChartHtml += '</svg></div></div>';
+                    }
+
+                    html+=`<tr id="detail-${rowId}" class="row-detail cat-child-${cat.id} ${isDetailExpanded ? 'open' : ''}" ${!isCatExpanded ? 'style="display:none;"' : ''}><td colspan="${totalCols}" style="padding:0;border-bottom:1px solid var(--border);"><div class="detail-card">${eduHtml}<div class="detail-item detail-item-box summary"><label>Evolución del Valor</label>${htmlEvo}</div><div class="detail-item detail-item-box history"><label>Análisis Estadístico (${targetYear})</label>${htmlAnual}</div>${refChartHtml}</div></td></tr>`;
 
                 } else if(isPowerRecord){
                     let utilHtml = '';
