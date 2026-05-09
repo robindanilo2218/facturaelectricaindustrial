@@ -127,7 +127,8 @@ function renderMainTable(baseAgg,compAggs,ytdAgg,currentPeriod,isAll,targetYear,
             </tr>`;
             
             group.items.forEach((item,itemIdx)=>{
-                let rowId=`row-${catIdx}-${itemIdx}`;
+                let safeConcept = item.concepto.replace(/[^a-zA-Z0-9]/g, '_');
+                let rowId = `row-${cat.id}-${safeConcept}`;
                 let expTooltip=getExplanation(item.concepto);
                 const upperConcept=item.concepto.toUpperCase();
                 const isReferenceValue=item._isInfo && (upperConcept.includes('CAMBIO')||upperConcept.includes('PRECIO')||upperConcept.includes('COMBUSTIBLE'));
