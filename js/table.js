@@ -63,9 +63,9 @@ function renderMainTable(baseAgg,compAggs,ytdAgg,currentPeriod,isAll,targetYear,
     let totalCols=5+(compAggs.length===0?1:compAggs.length);
     let tableHtml=`<thead><tr>`;
     tableHtml+=`<th class="sticky-col">Concepto <span style="font-size:0.75rem;font-weight:normal;color:var(--text-muted);">(Clic detalle)</span></th>`;
-    tableHtml+=`<th class="text-right">Cantidad</th><th>Unidad</th>`;
+    tableHtml+=`<th class="text-right">Cantidad<br><span style="font-size:0.85rem;color:#2563eb;font-weight:bold;">${formatMonthYearLabel(currentPeriod)}</span></th><th>Unidad</th>`;
     tableHtml+=`<th class="text-right">Precio Unit.<br><span style="font-size:0.75rem;font-weight:normal;color:var(--text-muted);">(Sin IVA)</span></th>`;
-    tableHtml+=`<th class="text-right">Costo Total<br><span style="font-size:0.75rem;font-weight:normal;color:var(--text-muted);">(Sin IVA)</span></th>`;
+    tableHtml+=`<th class="text-right">Costo Total<br><span style="font-size:0.85rem;color:#2563eb;font-weight:bold;">${formatMonthYearLabel(currentPeriod)}</span></th>`;
     if(compAggs.length===0){tableHtml+=`<th class="compare-col" style="min-width:180px;">% de Impacto Costo</th>`;}
     else{compAggs.forEach(c=>{tableHtml+=`<th class="text-right compare-col" style="min-width:150px;">Vs. ${formatMonthYearLabel(c.period)}<br><span style="font-size:0.75rem;font-weight:normal;color:var(--text-muted);">(Costo Sin IVA y P.U.)</span></th>`;});}
     tableHtml+=`</tr></thead><tbody>`;
@@ -138,7 +138,9 @@ function renderMainTable(baseAgg,compAggs,ytdAgg,currentPeriod,isAll,targetYear,
                 if(isReferenceValue&&item.costo>0&&item.precioUnitario===0){txtPrecio=formatMoney4(item.costo);}
                 let txtCosto=(isPowerRecord||(isReferenceValue&&item.costo===0))?'-':formatMoney(item.costo);
 
-                html+=`<tr id="${rowId}" class="row-header cat-child-${cat.id}" onclick="toggleDetail('${rowId}')" ${!isCatExpanded ? 'style="display:none;"' : ''}>`;
+                let isDetailExpanded = window.expandedDetails && window.expandedDetails.has(rowId);
+                
+                html+=`<tr id="${rowId}" class="row-header cat-child-${cat.id} ${isDetailExpanded ? 'open' : ''}" onclick="toggleDetail('${rowId}')" ${!isCatExpanded ? 'style="display:none;"' : ''}>`;
                 html+=`<td class="sticky-col"><div style="display:flex;align-items:center;"><span class="toggle-icon">&#9658;</span><strong class="has-tooltip" data-tooltip="${expTooltip}">${item.concepto}</strong></div></td>`;
                 html+=`<td class="text-right">${item.cantidad>0?formatNumber(item.cantidad):'-'}</td>`;
                 html+=`<td>${item.unidad}</td>`;
@@ -231,11 +233,11 @@ function renderMainTable(baseAgg,compAggs,ytdAgg,currentPeriod,isAll,targetYear,
                         htmlAnual+=`<div style="margin-top:12px;padding-top:12px;border-top:1px dashed #e9d5ff;"><span style="font-size:0.8rem;color:var(--primary);text-transform:uppercase;font-weight:700;display:block;margin-bottom:8px;">Cuartiles de Variación</span><div class="detail-row"><span>Q1 (Percentil 25):</span><strong style="color:#111;">${formatStat(q1,isExchange)}</strong></div><div class="detail-row"><span>Mediana (Q2):</span><strong style="color:#111;">${formatStat(q2,isExchange)}</strong></div><div class="detail-row"><span>Q3 (Percentil 75):</span><strong style="color:#111;">${formatStat(q3,isExchange)}</strong></div></div>`;
                     } else {htmlAnual=`<div class="detail-row"><span>No hay datos suficientes en el año ${targetYear}</span></div>`;}
 
-                    html+=`<tr id="detail-${rowId}" class="row-detail cat-child-${cat.id}" ${!isCatExpanded ? 'style="display:none;"' : ''}><td colspan="${totalCols}" style="padding:0;border-bottom:1px solid var(--border);"><div class="detail-card">${eduHtml}<div class="detail-item detail-item-box summary"><label>Evolución del Valor</label>${htmlEvo}</div><div class="detail-item detail-item-box history"><label>Análisis Estadístico (${targetYear})</label>${htmlAnual}</div></div></td></tr>`;
+                    html+=`<tr id="detail-${rowId}" class="row-detail cat-child-${cat.id} ${isDetailExpanded ? 'open' : ''}" ${!isCatExpanded ? 'style="display:none;"' : ''}><td colspan="${totalCols}" style="padding:0;border-bottom:1px solid var(--border);"><div class="detail-card">${eduHtml}<div class="detail-item detail-item-box summary"><label>Evolución del Valor</label>${htmlEvo}</div><div class="detail-item detail-item-box history"><label>Análisis Estadístico (${targetYear})</label>${htmlAnual}</div></div></td></tr>`;
 
                 } else if(isPowerRecord){
                     let valUndM2=(item.cantidad>0&&m2Totales>0)?(item.cantidad/m2Totales):0;
-                    html+=`<tr id="detail-${rowId}" class="row-detail cat-child-${cat.id}" ${!isCatExpanded ? 'style="display:none;"' : ''}><td colspan="${totalCols}" style="padding:0;border-bottom:1px solid var(--border);"><div class="detail-card" style="grid-template-columns:1fr;">${eduHtml}<div class="detail-item detail-item-box power" style="grid-column:1/-1;"><label>Perfil de Consumo (Horas Valle vs Pico)</label><p style="font-size:0.85rem;color:#4b5563;margin-bottom:12px;">En la tarifa industrial, el horario de <strong>18:00 a 22:00</strong> es el más caro.</p><div style="display:flex;width:100%;height:32px;border-radius:16px;overflow:hidden;border:1px solid #d1d5db;"><div class="has-tooltip" data-tooltip="Valle Nocturno (00:00-06:00)" style="width:25%;background:#d1fae5;display:flex;align-items:center;justify-content:center;">🌙</div><div class="has-tooltip" data-tooltip="Valle Diurno (06:00-18:00)" style="width:50%;background:#a7f3d0;display:flex;align-items:center;justify-content:center;">☀️</div><div class="has-tooltip" data-tooltip="HORA PICO (18:00-22:00) - Demanda Muy Cara" style="width:16.66%;background:#fecaca;display:flex;align-items:center;justify-content:center;border-left:2px solid #ef4444;border-right:2px solid #ef4444;font-weight:bold;">⚡</div><div class="has-tooltip" data-tooltip="Valle Nocturno (22:00-24:00)" style="width:8.33%;background:#d1fae5;display:flex;align-items:center;justify-content:center;">🌙</div></div><div style="display:flex;gap:16px;margin-top:8px;flex-wrap:wrap;"><div style="flex:1;background:#f8fafc;padding:12px;border-radius:8px;border:1px solid #e2e8f0;min-width:180px;"><span style="font-size:0.8rem;color:#4b5563;display:block;margin-bottom:4px;">Potencia Máx. (Resto del Día)</span><strong style="color:#111;font-size:1.25rem;">${formatNumber(baseAgg.kpis.resumenStats.potenciaMaxima)} kW</strong></div><div style="flex:1;background:#fef2f2;padding:12px;border-radius:8px;border:1px solid #fecaca;min-width:180px;"><span style="font-size:0.8rem;color:#991b1b;display:block;margin-bottom:4px;">Potencia en Pico (18h-22h)</span><strong style="color:#dc2626;font-size:1.25rem;">${formatNumber(baseAgg.kpis.resumenStats.potenciaPico)} kW</strong></div><div style="flex:1;background:#f0fdf4;padding:12px;border-radius:8px;border:1px solid #bbf7d0;min-width:180px;"><span style="font-size:0.8rem;color:#166534;display:block;margin-bottom:4px;">Demanda Firme / Contratada</span><strong style="color:#166534;font-size:1.25rem;">${formatNumber(baseAgg.kpis.resumenStats.demandaFirme||baseAgg.kpis.potenciaContratada)} kW</strong></div></div></div><div class="detail-item detail-item-box history"><label>Análisis Físico (${formatNumber(m2Totales)} m²)</label><div class="detail-row"><span>Unidades (kW) por m²:</span><strong style="color:var(--primary);">${item.cantidad>0?formatNumber(valUndM2)+' kW/m²':'N/A'}</strong></div></div></div></td></tr>`;
+                    html+=`<tr id="detail-${rowId}" class="row-detail cat-child-${cat.id} ${isDetailExpanded ? 'open' : ''}" ${!isCatExpanded ? 'style="display:none;"' : ''}><td colspan="${totalCols}" style="padding:0;border-bottom:1px solid var(--border);"><div class="detail-card" style="grid-template-columns:1fr;">${eduHtml}<div class="detail-item detail-item-box power" style="grid-column:1/-1;"><label>Perfil de Consumo (Horas Valle vs Pico)</label><p style="font-size:0.85rem;color:#4b5563;margin-bottom:12px;">En la tarifa industrial, el horario de <strong>18:00 a 22:00</strong> es el más caro.</p><div style="display:flex;width:100%;height:32px;border-radius:16px;overflow:hidden;border:1px solid #d1d5db;"><div class="has-tooltip" data-tooltip="Valle Nocturno (00:00-06:00)" style="width:25%;background:#d1fae5;display:flex;align-items:center;justify-content:center;">🌙</div><div class="has-tooltip" data-tooltip="Valle Diurno (06:00-18:00)" style="width:50%;background:#a7f3d0;display:flex;align-items:center;justify-content:center;">☀️</div><div class="has-tooltip" data-tooltip="HORA PICO (18:00-22:00) - Demanda Muy Cara" style="width:16.66%;background:#fecaca;display:flex;align-items:center;justify-content:center;border-left:2px solid #ef4444;border-right:2px solid #ef4444;font-weight:bold;">⚡</div><div class="has-tooltip" data-tooltip="Valle Nocturno (22:00-24:00)" style="width:8.33%;background:#d1fae5;display:flex;align-items:center;justify-content:center;">🌙</div></div><div style="display:flex;gap:16px;margin-top:8px;flex-wrap:wrap;"><div style="flex:1;background:#f8fafc;padding:12px;border-radius:8px;border:1px solid #e2e8f0;min-width:180px;"><span style="font-size:0.8rem;color:#4b5563;display:block;margin-bottom:4px;">Potencia Máx. (Resto del Día)</span><strong style="color:#111;font-size:1.25rem;">${formatNumber(baseAgg.kpis.resumenStats.potenciaMaxima)} kW</strong></div><div style="flex:1;background:#fef2f2;padding:12px;border-radius:8px;border:1px solid #fecaca;min-width:180px;"><span style="font-size:0.8rem;color:#991b1b;display:block;margin-bottom:4px;">Potencia en Pico (18h-22h)</span><strong style="color:#dc2626;font-size:1.25rem;">${formatNumber(baseAgg.kpis.resumenStats.potenciaPico)} kW</strong></div><div style="flex:1;background:#f0fdf4;padding:12px;border-radius:8px;border:1px solid #bbf7d0;min-width:180px;"><span style="font-size:0.8rem;color:#166534;display:block;margin-bottom:4px;">Demanda Firme / Contratada</span><strong style="color:#166534;font-size:1.25rem;">${formatNumber(baseAgg.kpis.resumenStats.demandaFirme||baseAgg.kpis.potenciaContratada)} kW</strong></div></div></div><div class="detail-item detail-item-box history"><label>Análisis Físico (${formatNumber(m2Totales)} m²)</label><div class="detail-row"><span>Unidades (kW) por m²:</span><strong style="color:var(--primary);">${item.cantidad>0?formatNumber(valUndM2)+' kW/m²':'N/A'}</strong></div></div></div></td></tr>`;
                 } else {
                     let isEnergy = upperConcept.includes('ENERGIA') || upperConcept.includes('ENERGÍA');
                     let isFactorPotencia = upperConcept.includes('FACTOR DE POTENCIA');
@@ -262,7 +264,7 @@ function renderMainTable(baseAgg,compAggs,ytdAgg,currentPeriod,isAll,targetYear,
                         let fpData = new Array(12).fill(null);
                         let monthExists = new Array(12).fill(false);
                         
-                        window.allFacturasData.forEach(f => {
+                        allFacturasData.forEach(f => {
                             if(f.monthYear.startsWith(targetYear)) {
                                 let m = parseInt(f.monthYear.substring(5,7)) - 1;
                                 monthExists[m] = true;
@@ -321,6 +323,9 @@ function renderMainTable(baseAgg,compAggs,ytdAgg,currentPeriod,isAll,targetYear,
                             fpChartHtml += `<path d="${pathD}" fill="none" stroke="#9ca3af" stroke-width="3" stroke-linecap="round" />`;
                         }
                         
+                        let currentM = parseInt(currentPeriod.substring(5,7)) - 1;
+                        let isCurrentYear = currentPeriod.startsWith(targetYear);
+
                         points.forEach((p, i) => {
                             let textY = 80;
                             let textCol = "#cbd5e1";
@@ -329,13 +334,16 @@ function renderMainTable(baseAgg,compAggs,ytdAgg,currentPeriod,isAll,targetYear,
                                 textY = p.y === 25 ? 15 : (p.y === 105 ? 122 : 50);
                                 textCol = p.y === 105 ? '#ef4444' : (p.y===25 ? '#10b981' : '#4b5563');
                             }
-                            fpChartHtml += `<text x="${p.x}" y="${textY}" fill="${textCol}" font-size="11" font-weight="bold" text-anchor="middle">${months[i]}</text>`;
+                            if (isCurrentYear && i === currentM) {
+                                textCol = '#2563eb';
+                            }
+                            fpChartHtml += `<text x="${p.x}" y="${textY}" fill="${textCol}" font-size="${(isCurrentYear && i === currentM) ? '13' : '11'}" font-weight="bold" text-anchor="middle">${months[i]}</text>`;
                         });
                         
                         fpChartHtml += `</svg></div></div>`;
                     }
                     
-                    html+=`<tr id="detail-${rowId}" class="row-detail cat-child-${cat.id}" ${!isCatExpanded ? 'style="display:none;"' : ''}><td colspan="${totalCols}" style="padding:0;border-bottom:1px solid var(--border);"><div class="detail-card" ${(!isEnergy && !isFactorPotencia) ? 'style="grid-template-columns:1fr;"' : ''}>${eduHtml}${desgloseFinancieroHtml}${rendimientoHtml}${extraCardHtml}${fpChartHtml}</div></td></tr>`;
+                    html+=`<tr id="detail-${rowId}" class="row-detail cat-child-${cat.id} ${isDetailExpanded ? 'open' : ''}" ${!isCatExpanded ? 'style="display:none;"' : ''}><td colspan="${totalCols}" style="padding:0;border-bottom:1px solid var(--border);"><div class="detail-card" ${(!isEnergy && !isFactorPotencia) ? 'style="grid-template-columns:1fr;"' : ''}>${eduHtml}${desgloseFinancieroHtml}${rendimientoHtml}${extraCardHtml}${fpChartHtml}</div></td></tr>`;
                 }
             });
             return html;

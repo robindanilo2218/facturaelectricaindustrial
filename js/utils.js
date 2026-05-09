@@ -266,15 +266,19 @@ function switchTab(tabId) {
     if (tabId === 'calc') { actualizarGraficos(); }
 }
 
+window.expandedDetails = window.expandedDetails || new Set();
+
 // Acordeón de filas
 function toggleDetail(rowId) {
     const headerRow = document.getElementById(rowId);
     const detailRow = document.getElementById('detail-' + rowId);
     if (headerRow.classList.contains('open')) {
         headerRow.classList.remove('open');
-        detailRow.classList.remove('open');
+        if (detailRow) detailRow.classList.remove('open');
+        window.expandedDetails.delete(rowId);
     } else {
         headerRow.classList.add('open');
-        detailRow.classList.add('open');
+        if (detailRow) detailRow.classList.add('open');
+        window.expandedDetails.add(rowId);
     }
 }
