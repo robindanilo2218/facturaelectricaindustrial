@@ -3,10 +3,14 @@
 // ==========================================
 
 function formatPct(num) {
-    if (num === 0) return "0";
+    if (typeof window.formatPctStandard === 'function') {
+        return window.formatPctStandard(num);
+    }
+    if (num === 0) return "0.0";
     let absNum = Math.abs(num);
     if (absNum >= 1) return num.toFixed(1);
-    return Number(num.toPrecision(2)).toString();
+    if (absNum >= 0.01) return num.toFixed(2);
+    return num.toFixed(5);
 }
 
 window.calcStates = window.calcStates || {};
@@ -244,8 +248,84 @@ function renderMainTable(baseAgg,compAggs,ytdAgg,currentPeriod,isAll,targetYear,
                     html+=`<tr id="detail-${rowId}" class="row-detail cat-child-${cat.id} ${isDetailExpanded ? 'open' : ''}" ${!isCatExpanded ? 'style="display:none;"' : ''}><td colspan="${totalCols}" style="padding:0;border-bottom:1px solid var(--border);"><div class="detail-card">${eduHtml}<div class="detail-item detail-item-box summary"><label>Evolución del Valor</label>${htmlEvo}</div><div class="detail-item detail-item-box history"><label>Análisis Estadístico (${targetYear})</label>${htmlAnual}</div></div></td></tr>`;
 
                 } else if(isPowerRecord){
-                    let valUndM2=(item.cantidad>0&&m2Totales>0)?(item.cantidad/m2Totales):0;
-                    html+=`<tr id="detail-${rowId}" class="row-detail cat-child-${cat.id} ${isDetailExpanded ? 'open' : ''}" ${!isCatExpanded ? 'style="display:none;"' : ''}><td colspan="${totalCols}" style="padding:0;border-bottom:1px solid var(--border);"><div class="detail-card" style="grid-template-columns:1fr;">${eduHtml}<div class="detail-item detail-item-box power" style="grid-column:1/-1;"><label>Perfil de Consumo (Horas Valle vs Pico)</label><p style="font-size:0.85rem;color:#4b5563;margin-bottom:12px;">En la tarifa industrial, el horario de <strong>18:00 a 22:00</strong> es el más caro.</p><div style="display:flex;width:100%;height:32px;border-radius:16px;overflow:hidden;border:1px solid #d1d5db;"><div class="has-tooltip" data-tooltip="Valle Nocturno (00:00-06:00)" style="width:25%;background:#d1fae5;display:flex;align-items:center;justify-content:center;">🌙</div><div class="has-tooltip" data-tooltip="Valle Diurno (06:00-18:00)" style="width:50%;background:#a7f3d0;display:flex;align-items:center;justify-content:center;">☀️</div><div class="has-tooltip" data-tooltip="HORA PICO (18:00-22:00) - Demanda Muy Cara" style="width:16.66%;background:#fecaca;display:flex;align-items:center;justify-content:center;border-left:2px solid #ef4444;border-right:2px solid #ef4444;font-weight:bold;">⚡</div><div class="has-tooltip" data-tooltip="Valle Nocturno (22:00-24:00)" style="width:8.33%;background:#d1fae5;display:flex;align-items:center;justify-content:center;">🌙</div></div><div style="display:flex;gap:16px;margin-top:8px;flex-wrap:wrap;"><div style="flex:1;background:#f8fafc;padding:12px;border-radius:8px;border:1px solid #e2e8f0;min-width:180px;"><span style="font-size:0.8rem;color:#4b5563;display:block;margin-bottom:4px;">Potencia Máx. (Resto del Día)</span><strong style="color:#111;font-size:1.25rem;">${formatNumber(baseAgg.kpis.resumenStats.potenciaMaxima)} kW</strong></div><div style="flex:1;background:#fef2f2;padding:12px;border-radius:8px;border:1px solid #fecaca;min-width:180px;"><span style="font-size:0.8rem;color:#991b1b;display:block;margin-bottom:4px;">Potencia en Pico (18h-22h)</span><strong style="color:#dc2626;font-size:1.25rem;">${formatNumber(baseAgg.kpis.resumenStats.potenciaPico)} kW</strong></div><div style="flex:1;background:#f0fdf4;padding:12px;border-radius:8px;border:1px solid #bbf7d0;min-width:180px;"><span style="font-size:0.8rem;color:#166534;display:block;margin-bottom:4px;">Demanda Firme / Contratada</span><strong style="color:#166534;font-size:1.25rem;">${formatNumber(baseAgg.kpis.resumenStats.demandaFirme||baseAgg.kpis.potenciaContratada)} kW</strong></div></div></div><div class="detail-item detail-item-box history"><label>Análisis Físico (${formatNumber(m2Totales)} m²)</label><div class="detail-row"><span>Unidades (kW) por m²:</span><strong style="color:var(--primary);">${item.cantidad>0?formatNumber(valUndM2)+' kW/m²':'N/A'}</strong></div></div></div></td></tr>`;
+                    let utilHtml = '';
+                    if (upperConcept.includes('CONTRATADA') || upperConcept.includes('FIRME') || upperConcept.includes('POTENCIA MAX') || upperConcept.includes('POTENCIA MÁX')) {
+                        let isContratada = upperConcept.includes('CONTRATADA') || upperConcept.includes('FIRME');
+                        let horasMes = typeof currentDaysConfig !== 'undefined' ? currentDaysConfig.totalHours : 720;
+                        let energiaTeorica = item.cantidad * horasMes;
+                        let energiaReal = baseAgg.kpis.energiaTotal;
+                        let energiaOciosa = energiaTeorica > energiaReal ? energiaTeorica - energiaReal : 0;
+                        let pctUtilizacion = energiaTeorica > 0 ? (energiaReal / energiaTeorica) * 100 : 0;
+                        let colorUtil = pctUtilizacion > 85 ? '#ef4444' : (pctUtilizacion < 40 ? '#f59e0b' : '#10b981');
+                        
+                        let titulo, desc, txtNoUsada, explicacion, escenarioHtml = '';
+                        if (isContratada) {
+                            titulo = 'Factor de Carga (Utilización de Capacidad Contratada)';
+                            desc = `Si utilizáramos los <strong>${formatNumber(item.cantidad)} kW</strong> de <strong>${item.concepto}</strong> durante las <strong>${horasMes} horas</strong> del mes, el consumo máximo teórico sería de <strong>${formatNumber(energiaTeorica)} kWh</strong>. <br>Comparamos esto con la energía real consumida para conocer nuestro % de utilización de la capacidad disponible.`;
+                            txtNoUsada = 'Energía Disponible (No Utilizada)';
+                            explicacion = `Un porcentaje bajo (ej. &lt; 40%) indica que estamos pagando por mucha capacidad ("tubo muy ancho") pero no la aprovechamos todo el mes, o que operamos pocas horas al día. Un porcentaje alto (ej. &gt; 85%) indica un uso intensivo (posiblemente 3 turnos continuos de producción) donde se aprovecha al máximo la capacidad contratada.`;
+                            
+                            let kwhEfectivoDiario = item.cantidad * 22.66; // 24h - 1.33h (80 mins)
+                            let kwhDiaCero = item.cantidad * 24;
+                            let kwhTresDias = kwhDiaCero * 3;
+                            
+                            escenarioHtml = `
+                            <div style="margin-top:12px; background:#fdf2f8; padding:12px; border-radius:6px; border:1px solid #fbcfe8;">
+                                <strong style="display:block; font-size: 0.85rem; color: #9d174d; margin-bottom: 6px;">⚠️ Riesgos de Contrato Mayorista (Guatemala)</strong>
+                                <p style="font-size: 0.85rem; color: #831843; margin-bottom: 8px; line-height: 1.4;">
+                                    En Guatemala, la tarifa de Gran Usuario estipula que la Potencia (Demanda Firme) se paga bajo la cláusula <strong>"Take-or-Pay"</strong>: la uses o no, la pagas al 100%. <br>Si <strong>excedes</strong> tu Demanda Firme, el exceso puede facturarse a un alto precio Spot o forzar un reajuste de tu contrato al alza para el próximo año. ¡Consulta con tu comercializador!
+                                </p>
+                                <div style="background:#fff; border:1px dashed #f472b6; padding:10px; border-radius:4px;">
+                                    <strong style="font-size:0.8rem; color:#be185d; display:block; margin-bottom:4px;">Análisis de Paros y Jornada de 24h:</strong>
+                                    <ul style="margin:0; font-size:0.8rem; color:#9d174d; padding-left:16px; line-height:1.4;">
+                                        <li style="margin-bottom:4px;"><strong>Jornada Operativa:</strong> Descontando 80 min de refacciones (20m AM, 30m PM, 30m Noche), operas ~22.66h diarias. Esto representa <strong>${formatNumber(kwhEfectivoDiario)} kWh/día</strong> de tope teórico.</li>
+                                        <li style="margin-bottom:4px;"><strong>1 Día Sin Producir:</strong> Dejas de consumir ~<strong>${formatNumber(kwhDiaCero)} kWh</strong>, pero el cargo fijo mensual de potencia no disminuye.</li>
+                                        <li><strong>3 Días Sin Producir:</strong> Pierdes un equivalente a ~<strong>${formatNumber(kwhTresDias)} kWh</strong>. El costo de la potencia se divide entre menos unidades producidas, <strong>disparando severamente tu costo real por kWh</strong>.</li>
+                                    </ul>
+                                </div>
+                            </div>`;
+                        } else {
+                            titulo = 'Factor de Carga (Eficiencia del Perfil de Consumo)';
+                            desc = `Si hubiésemos mantenido el consumo constante al nivel de nuestro pico de <strong>${formatNumber(item.cantidad)} kW</strong> (${item.concepto}) durante las <strong>${horasMes} horas</strong>, habríamos sumado <strong>${formatNumber(energiaTeorica)} kWh</strong>. <br>Comparamos esto con la energía real para ver qué tan "plano" es nuestro perfil de consumo.`;
+                            txtNoUsada = 'Margen bajo el Pico (No Consumido)';
+                            explicacion = `En este caso (basado en Potencia Máxima), un porcentaje muy bajo indica que tuvimos picos muy altos de demanda ("arrancadas" bruscas de máquinas) pero el resto del tiempo consumimos poco. Esto es ineficiente y encarece la factura. Un porcentaje alto (&gt; 70%) indica un consumo muy parejo y estable, lo cual es ideal para evitar penalizaciones y optimizar costos.`;
+                        }
+
+                        utilHtml = `<div class="detail-item detail-item-box power" style="grid-column:1/-1; margin-top:12px;">
+                            <label>${titulo}</label>
+                            <p style="font-size:0.85rem;color:#4b5563;margin-bottom:12px;">
+                                ${desc}
+                            </p>
+                            <div style="background:#f8fafc; padding:16px; border-radius:8px; border:1px solid #e2e8f0; display:flex; gap:16px; flex-wrap:wrap; align-items:center;">
+                                <div style="flex:1; min-width:200px;">
+                                    <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:0.9rem;">
+                                        <span style="color:#6b7280;">Energía Real Consumida</span>
+                                        <strong style="color:#111;">${formatNumber(energiaReal)} kWh</strong>
+                                    </div>
+                                    <div style="width:100%; background:#e2e8f0; height:12px; border-radius:6px; overflow:hidden; margin-bottom:8px;">
+                                        <div style="width:${Math.min(pctUtilizacion, 100)}%; background:${colorUtil}; height:100%; border-radius:6px;"></div>
+                                    </div>
+                                    <div style="display:flex; justify-content:space-between; font-size:0.9rem;">
+                                        <span style="color:#6b7280;">${txtNoUsada}</span>
+                                        <strong style="color:#6b7280;">${formatNumber(energiaOciosa)} kWh</strong>
+                                    </div>
+                                </div>
+                                <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:12px 24px; background:#fff; border:2px solid ${colorUtil}; border-radius:8px; min-width:120px;">
+                                    <span style="font-size:0.8rem; color:#6b7280; text-transform:uppercase; font-weight:bold; margin-bottom:4px;">Utilización</span>
+                                    <strong style="font-size:1.8rem; color:${colorUtil};">${formatPct(pctUtilizacion)}%</strong>
+                                </div>
+                            </div>
+                            <div style="margin-top:12px; background:#eff6ff; padding:12px; border-radius:6px; border:1px solid #bfdbfe;">
+                                <strong style="display:block; font-size: 0.85rem; color: #1e40af; margin-bottom: 4px;">📊 ¿Qué significa esto?</strong>
+                                <p style="font-size: 0.85rem; color: #1e3a8a; margin: 0; line-height: 1.5;">
+                                    ${explicacion}
+                                </p>
+                            </div>
+                            ${escenarioHtml}
+                        </div>`;
+                    }
+                    
+                    html+=`<tr id="detail-${rowId}" class="row-detail cat-child-${cat.id} ${isDetailExpanded ? 'open' : ''}" ${!isCatExpanded ? 'style="display:none;"' : ''}><td colspan="${totalCols}" style="padding:0;border-bottom:1px solid var(--border);"><div class="detail-card" style="grid-template-columns:1fr;">${eduHtml}<div class="detail-item detail-item-box power" style="grid-column:1/-1;"><label>Perfil de Consumo (Horas Valle vs Pico)</label><p style="font-size:0.85rem;color:#4b5563;margin-bottom:12px;">En la tarifa industrial, el horario de <strong>18:00 a 22:00</strong> es el más caro.</p><div style="display:flex;width:100%;height:32px;border-radius:16px;overflow:hidden;border:1px solid #d1d5db;"><div class="has-tooltip" data-tooltip="Valle Nocturno (00:00-06:00)" style="width:25%;background:#d1fae5;display:flex;align-items:center;justify-content:center;">🌙</div><div class="has-tooltip" data-tooltip="Valle Diurno (06:00-18:00)" style="width:50%;background:#a7f3d0;display:flex;align-items:center;justify-content:center;">☀️</div><div class="has-tooltip" data-tooltip="HORA PICO (18:00-22:00) - Demanda Muy Cara" style="width:16.66%;background:#fecaca;display:flex;align-items:center;justify-content:center;border-left:2px solid #ef4444;border-right:2px solid #ef4444;font-weight:bold;">⚡</div><div class="has-tooltip" data-tooltip="Valle Nocturno (22:00-24:00)" style="width:8.33%;background:#d1fae5;display:flex;align-items:center;justify-content:center;">🌙</div></div><div style="display:flex;gap:16px;margin-top:8px;flex-wrap:wrap;"><div style="flex:1;background:#f8fafc;padding:12px;border-radius:8px;border:1px solid #e2e8f0;min-width:180px;"><span style="font-size:0.8rem;color:#4b5563;display:block;margin-bottom:4px;">Potencia Máx. (Resto del Día)</span><strong style="color:#111;font-size:1.25rem;">${formatNumber(baseAgg.kpis.resumenStats.potenciaMaxima)} kW</strong></div><div style="flex:1;background:#fef2f2;padding:12px;border-radius:8px;border:1px solid #fecaca;min-width:180px;"><span style="font-size:0.8rem;color:#991b1b;display:block;margin-bottom:4px;">Potencia en Pico (18h-22h)</span><strong style="color:#dc2626;font-size:1.25rem;">${formatNumber(baseAgg.kpis.resumenStats.potenciaPico)} kW</strong></div><div style="flex:1;background:#f0fdf4;padding:12px;border-radius:8px;border:1px solid #bbf7d0;min-width:180px;"><span style="font-size:0.8rem;color:#166534;display:block;margin-bottom:4px;">Demanda Firme / Contratada</span><strong style="color:#166534;font-size:1.25rem;">${formatNumber(baseAgg.kpis.resumenStats.demandaFirme||baseAgg.kpis.potenciaContratada)} kW</strong></div></div></div>${utilHtml}</div></td></tr>`;
                 } else {
                     let isEnergy = upperConcept.includes('ENERGIA') || upperConcept.includes('ENERGÍA');
                     let isFactorPotencia = upperConcept.includes('FACTOR DE POTENCIA');

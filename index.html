@@ -33,7 +33,7 @@
                 <h1 style="margin:0;">Gestión Integral de Energía</h1>
                 <span id="appVersion" onclick="handleVersionClick()"
                     style="background:var(--primary);color:white;padding:4px 8px;border-radius:12px;font-size:0.8rem;font-weight:bold;cursor:pointer;user-select:none;transition:background 0.3s;"
-                    title="Clic 3 veces para forzar actualización">v3.3.7</span>
+                    title="Clic 3 veces para forzar actualización">v3.4.0</span>
             </div>
             <div class="controls">
                 <label class="file-upload-label icon-btn tooltip-container" aria-label="Abrir Respaldo (.fel)">
@@ -41,7 +41,8 @@
                     <input type="file" id="jsonInput" accept=".json,.fel">
                     <span class="tooltip-text">Abrir Respaldo (.fel)</span>
                 </label>
-                <button class="secondary icon-btn tooltip-container" onclick="exportJSON()" aria-label="Guardar Respaldo (.fel)">
+                <button class="secondary icon-btn tooltip-container" onclick="exportJSON()"
+                    aria-label="Guardar Respaldo (.fel)">
                     💾
                     <span class="tooltip-text">Guardar Respaldo (.fel)</span>
                 </button>
@@ -50,7 +51,8 @@
                     <input type="file" id="csvInput" accept=".csv" multiple>
                     <span class="tooltip-text">Subir nuevos CSVs</span>
                 </label>
-                <button class="danger icon-btn tooltip-container" onclick="clearDatabase()" aria-label="Borrar Todo el Historial">
+                <button class="danger icon-btn tooltip-container" onclick="clearDatabase()"
+                    aria-label="Borrar Todo el Historial">
                     🗑️
                     <span class="tooltip-text">Borrar Todo el Historial</span>
                 </button>
@@ -59,6 +61,7 @@
 
         <!-- NAVEGACIÓN DE PESTAÑAS -->
         <nav class="tabs">
+            <button class="tab-btn" id="btn-tab-kpis" onclick="switchTab('kpis')">Dashboard Ejecutivo y KPIs</button>
             <button class="tab-btn active" id="btn-tab-dashboard" onclick="switchTab('dashboard')">Historial y Análisis
                 de Factura</button>
             <button class="tab-btn" id="btn-tab-calc" onclick="switchTab('calc')">Eficiencia y Costo de
@@ -71,7 +74,8 @@
                 <div class="nav-group">
                     <span style="font-size:0.85rem;font-weight:600;">Periodo Base:</span>
                     <button id="btnPrev" onclick="navigate(-1)" title="Mes Anterior">&larr;</button>
-                    <select id="periodSelect" onchange="onFilterChange()" style="font-weight: bold; color: var(--primary);">
+                    <select id="periodSelect" onchange="onFilterChange()"
+                        style="font-weight: bold; color: var(--primary);">
                         <option value="ALL">Todo el Historial Acumulado</option>
                     </select>
                     <button id="btnNext" onclick="navigate(1)" title="Mes Siguiente">&rarr;</button>
@@ -104,6 +108,16 @@
                         selección.</span></h3>
                 <div id="matrixContainer"></div>
             </div>
+        </div>
+
+        <!-- PESTAÑA KPI: DASHBOARD EJECUTIVO -->
+        <div id="tab-kpis" class="tab-content">
+            <h2 style="margin-bottom:8px;font-size:1.4rem;color:#1e3a8a;">Resumen Ejecutivo y Oportunidades</h2>
+            <p style="font-size:0.9rem;color:#4b5563;margin-bottom:20px;">
+                Esta vista consolida tus indicadores críticos del mes y alerta sobre fugas de capital. <strong>Si algo
+                    está en rojo, hay dinero que se está perdiendo.</strong>
+            </p>
+            <div id="kpiDashboardContainer"></div>
         </div>
 
         <!-- PESTAÑA 1: HISTORIAL Y ANÁLISIS -->

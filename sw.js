@@ -1,7 +1,7 @@
 // ==========================================
 // SERVICE WORKER - Cache First (Offline PWA)
 // ==========================================
-const CACHE_NAME = 'energia-app-v3.3.7';
+const CACHE_NAME = 'energia-app-v3.4.0';
 const ASSETS_TO_CACHE = [
     '/',
     '/index.html',

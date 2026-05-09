@@ -244,6 +244,14 @@ function formatMonthYearLabel(monthYear) {
     return `${months[m - 1]} ${parts[0]}`;
 }
 
+window.formatPctStandard = function(num) {
+    if (num === 0) return "0.0";
+    let absNum = Math.abs(num);
+    if (absNum >= 1) return num.toFixed(1);
+    if (absNum >= 0.01) return num.toFixed(2);
+    return num.toFixed(5);
+};
+
 function calculateDiff(current, compareTarget) {
     if (!compareTarget || compareTarget === 0) {
         if (current > 0) return { text: 'Nuevo', class: 'bad' };
@@ -253,8 +261,7 @@ function calculateDiff(current, compareTarget) {
     const pct = (diff / compareTarget) * 100;
     const prefix = diff > 0 ? '+' : '';
     const colorClass = diff > 0 ? 'bad' : (diff < 0 ? 'good' : 'neutral');
-    const isInt = Math.abs(pct % 1) < 0.000001;
-    return { text: `${prefix}${pct.toLocaleString('es-GT', { minimumFractionDigits: isInt ? 0 : 2, maximumFractionDigits: 5 })}%`, class: colorClass };
+    return { text: `${prefix}${window.formatPctStandard(pct)}%`, class: colorClass };
 }
 
 // Sistema de pestañas
