@@ -405,6 +405,7 @@ window.renderKPIDashboard = function(baseAgg, currentPeriod, isAll, manualTC, m2
                 <select id="kpiConfEne" onchange="updateKpiConfig()" style="width:100%; padding: 6px; border-radius: 4px; border: 1px solid #cbd5e1; font-size:0.85rem;">
                     <option value="1" ${conf.ene === 1 ? 'selected' : ''}>por kWh (Normal)</option>
                     <option value="1000" ${conf.ene === 1000 ? 'selected' : ''}>por MWh (Megavatio)</option>
+                    <option value="1000000" ${conf.ene === 1000000 ? 'selected' : ''}>por GWh (Gigavatio)</option>
                     <option value="0.001" ${conf.ene === 0.001 ? 'selected' : ''}>por Wh (Vatio)</option>
                 </select>
             </div>
@@ -415,6 +416,8 @@ window.renderKPIDashboard = function(baseAgg, currentPeriod, isAll, manualTC, m2
                     <option value="100" ${conf.prod === 100 ? 'selected' : ''}>100 Unidades</option>
                     <option value="1000" ${conf.prod === 1000 ? 'selected' : ''}>1,000 Unidades</option>
                     <option value="1000000" ${conf.prod === 1000000 ? 'selected' : ''}>1,000,000 Unidades</option>
+                    <option value="10000000" ${conf.prod === 10000000 ? 'selected' : ''}>10,000,000 Unidades</option>
+                    <option value="100000000" ${conf.prod === 100000000 ? 'selected' : ''}>100,000,000 Unidades</option>
                 </select>
             </div>
         </div>
@@ -434,7 +437,7 @@ window.renderKPIDashboard = function(baseAgg, currentPeriod, isAll, manualTC, m2
     
     // Nombres de escala
     let curName = conf.cur === 100 ? '¢' : (document.getElementById('displayCurrency').value === 'GTQ' ? 'Q' : '$');
-    let eneName = conf.ene === 1 ? 'kWh' : (conf.ene === 1000 ? 'MWh' : 'Wh');
+    let eneName = conf.ene === 1 ? 'kWh' : (conf.ene === 1000 ? 'MWh' : (conf.ene === 1000000 ? 'GWh' : 'Wh'));
     let prodName = conf.prod === 1 ? 'Unidad (m²)' : (conf.prod === 1000 ? 'k Unid. (m²)' : formatNumber(conf.prod) + ' Unid. (m²)');
 
     let ind_CostoEnergiaKWh = kwhTotal > 0 ? (costoPuraEnergia / kwhTotal) * conf.ene * conf.cur : 0;

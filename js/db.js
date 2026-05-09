@@ -66,14 +66,28 @@ async function clearDatabase() {
 // ==========================================
 async function exportJSON() {
     const facturas = await getAllFacturas();
-    const exportData = { facturas: facturas, maquinas: datosMaquinas };
+
+    // Recopilar TODOS los datos persistentes de la aplicación
+    const exportData = {
+        _meta: {
+            version: document.getElementById('appVersion') ? document.getElementById('appVersion').textContent.trim() : 'unknown',
+            exportedAt: new Date().toISOString(),
+            app: 'Gestión Integral de Energía'
+        },
+        facturas: facturas,
+        maquinas: datosMaquinas,
+        settings: {
+            kpi_config: JSON.parse(localStorage.getItem('kpi_config') || '{}'),
+            checklist_kpis: JSON.parse(localStorage.getItem('checklist_kpis') || '{}')
+        }
+    };
+
     const dataStr = JSON.stringify(exportData, null, 2);
     const blob = new Blob([dataStr], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     
-    // Generar formato de fecha YYYYMMDDHHMM.fel
     const now = new Date();
     const pad = (n) => String(n).padStart(2, '0');
     const timestamp = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}`;
@@ -92,13 +106,16 @@ function initFileListeners() {
             try {
                 const data = JSON.parse(event.target.result);
                 let facturasToImport = [];
+
                 if (Array.isArray(data)) {
+                    // Formato legado: array plano de facturas
                     facturasToImport = data;
                 } else if (data && data.facturas) {
                     facturasToImport = data.facturas;
+
+                    // Restaurar configuración de máquinas
                     if (data.maquinas && Array.isArray(data.maquinas)) {
-                        datosMaquinas = data.maquinas;
-                        datosMaquinas = datosMaquinas.map(m => {
+                        datosMaquinas = data.maquinas.map(m => {
                             if (m.minLS === undefined) { m.minLS = 80; m.minDom = 110; }
                             if (m.horas !== undefined && m.horasProd === undefined) { m.horasProd = m.horas; delete m.horas; }
                             m.horasMes = m.horasMes || 720;
@@ -108,15 +125,26 @@ function initFileListeners() {
                         guardarMaquinasEnLocalStorage();
                         renderTablaIngreso();
                     }
+
+                    // Restaurar settings de localStorage (kpi_config, checklist, etc.)
+                    if (data.settings && typeof data.settings === 'object') {
+                        Object.entries(data.settings).forEach(([key, value]) => {
+                            if (value !== null && value !== undefined) {
+                                localStorage.setItem(key, JSON.stringify(value));
+                            }
+                        });
+                    }
                 } else { throw new Error("Formato inválido"); }
+
                 let count = 0;
                 for (const item of facturasToImport) {
                     if (item.id && item.items) { await saveFactura(item); count++; }
                 }
-                showToast(`Se importaron ${count} facturas correctamente.`);
+                const meta = data._meta ? ` (respaldo del ${new Date(data._meta.exportedAt).toLocaleDateString('es-GT')})` : '';
+                showToast(`Se importaron ${count} facturas correctamente.${meta}`);
                 loadDataAndRefresh();
                 calcularTodo();
-            } catch (err) { showToast("Error al importar: Archivo JSON no válido."); }
+            } catch (err) { showToast("Error al importar: Archivo .fel no válido."); }
             e.target.value = '';
         };
         reader.readAsText(file);
